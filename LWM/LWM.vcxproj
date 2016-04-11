@@ -154,13 +154,21 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="crypto.h" />
     <ClInclude Include="FrmLogin.h" />
+    <ClInclude Include="iosrvThread.h" />
     <ClInclude Include="main.h" />
+    <ClInclude Include="session.h" />
     <ClInclude Include="stdafx.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="crypto.cpp" />
     <ClCompile Include="FrmLogin.cpp" />
+    <ClCompile Include="iosrvThread.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="mainFrame.cpp" />
+    <ClCompile Include="session.cpp" />
+    <ClCompile Include="session_server.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

@@ -24,6 +24,15 @@
     <ClInclude Include="FrmLogin.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="crypto.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="session.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="iosrvThread.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -33,6 +42,21 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="FrmLogin.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="session.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="session_server.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="iosrvThread.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="mainFrame.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
