@@ -9,10 +9,7 @@ public:
 	mainFrame(const wxString& title);
 private:
 	enum itemID {
-		ID_FRAME,
-		ID_LISTUSER, ID_BUTTONADD, ID_BUTTONDEL,
-		ID_TEXTMSG, ID_TEXTINPUT, ID_BUTTONSEND, ID_BUTTONSENDIMAGE, ID_BUTTONSENDFILE, ID_BUTTONCANCELSEND,
-		ID_TEXTINFO
+		ID_FRAME
 	};
 
 	wxPanel *panel;
