@@ -2,16 +2,16 @@
 
 #ifndef _H_FRM_LOGIN
 
-class FrmLogin : public wxFrame
+class FrmLogin : public wxDialog
 {
 public:
 	FrmLogin(const wxString& title);
 
-	wxString GetAddress() { return textName->GetValue(); }
-	wxString GetPort() { return textPass->GetValue(); }
+	wxString GetName() { return textName->GetValue(); }
+	wxString GetPass() { return textPass->GetValue(); }
 private:
 	enum itemID {
-		ID_FRAME = 100,
+		ID_FRAME = 100, ID_ANY,
 		ID_TEXTNAME, ID_TEXTPASS
 	};
 

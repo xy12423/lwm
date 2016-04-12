@@ -156,6 +156,7 @@
   <ItemGroup>
     <ClInclude Include="crypto.h" />
     <ClInclude Include="FrmLogin.h" />
+    <ClInclude Include="FrmWorkInfo.h" />
     <ClInclude Include="iosrvThread.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="session.h" />
@@ -164,6 +165,7 @@
   <ItemGroup>
     <ClCompile Include="crypto.cpp" />
     <ClCompile Include="FrmLogin.cpp" />
+    <ClCompile Include="FrmWorkInfo.cpp" />
     <ClCompile Include="iosrvThread.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mainFrame.cpp" />
