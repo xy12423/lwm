@@ -8,9 +8,11 @@ wxBEGIN_EVENT_TABLE(mainFrame, wxFrame)
 wxEND_EVENT_TABLE()
 
 #ifdef __WXMSW__
+const int _GUI_GAP = 20;
 const int _GUI_SIZE_X = 620;
 const int _GUI_SIZE_Y = 560;
 #else
+const int _GUI_GAP = 0;
 const int _GUI_SIZE_X = 600;
 const int _GUI_SIZE_Y = 540;
 #endif

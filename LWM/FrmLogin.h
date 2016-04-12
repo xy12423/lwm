@@ -6,14 +6,19 @@ class FrmLogin : public wxFrame
 {
 public:
 	FrmLogin(const wxString& title);
+
+	wxString GetAddress() { return textName->GetValue(); }
+	wxString GetPort() { return textPass->GetValue(); }
 private:
 	enum itemID {
-		ID_FRAME
+		ID_FRAME = 100,
+		ID_TEXTNAME, ID_TEXTPASS
 	};
 
 	wxPanel *panel;
 
-	wxDECLARE_EVENT_TABLE();
+	wxTextCtrl *textName, *textPass;
+	wxButton *buttonOK, *buttonCancel;
 };
 
 #endif

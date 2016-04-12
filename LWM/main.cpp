@@ -14,6 +14,21 @@ asio::io_service main_io_service, misc_io_service;
 std::unique_ptr<msgr_proto::server> srv;
 lwm_client inter;
 
+void lwm_client::on_data(user_id_type id, const std::string& data)
+{
+	
+}
+
+void lwm_client::on_join(user_id_type id, const std::string& key)
+{
+
+}
+
+void lwm_client::on_leave(user_id_type id)
+{
+
+}
+
 bool lwm_client::new_rand_port(port_type &ret)
 {
 	if (ports.empty())
