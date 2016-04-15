@@ -23,7 +23,7 @@ void sym_encrypt(const std::string &src, std::string &dst, CryptoPP::CBC_Mode<Cr
 void sym_decrypt(const std::string &src, std::string &dst, CryptoPP::CBC_Mode<CryptoPP::AES>::Decryption &d);
 
 void dhGen(CryptoPP::SecByteBlock &priv, CryptoPP::SecByteBlock &pub);
-bool dhAgree(CryptoPP::SecByteBlock &agree, const  CryptoPP::SecByteBlock &priv, const  CryptoPP::SecByteBlock &pub);
+bool dhAgree(CryptoPP::SecByteBlock &agree, const CryptoPP::SecByteBlock &priv, const CryptoPP::SecByteBlock &pub);
 
 rand_num_type genRandomNumber();
 

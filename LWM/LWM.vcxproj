@@ -158,6 +158,7 @@
     <ClInclude Include="FrmLogin.h" />
     <ClInclude Include="FrmWorkInfo.h" />
     <ClInclude Include="iosrvThread.h" />
+    <ClInclude Include="lwm_client.h" />
     <ClInclude Include="main.h" />
     <ClInclude Include="session.h" />
     <ClInclude Include="stdafx.h" />
@@ -167,6 +168,7 @@
     <ClCompile Include="FrmLogin.cpp" />
     <ClCompile Include="FrmWorkInfo.cpp" />
     <ClCompile Include="iosrvThread.cpp" />
+    <ClCompile Include="lwm_client.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="mainFrame.cpp" />
     <ClCompile Include="session.cpp" />

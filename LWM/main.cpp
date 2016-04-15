@@ -2,6 +2,7 @@
 #include "crypto.h"
 #include "session.h"
 #include "iosrvThread.h"
+#include "lwm_client.h"
 #include "main.h"
 
 const char* privatekeyFile = ".privatekey";
@@ -12,35 +13,7 @@ iosrvThread *threadNetwork, *threadMisc;
 
 asio::io_service main_io_service, misc_io_service;
 std::unique_ptr<msgr_proto::server> srv;
-lwm_client inter;
-
-void lwm_client::on_data(user_id_type id, const std::string& data)
-{
-	
-}
-
-void lwm_client::on_join(user_id_type id, const std::string& key)
-{
-
-}
-
-void lwm_client::on_leave(user_id_type id)
-{
-
-}
-
-bool lwm_client::new_rand_port(port_type &ret)
-{
-	if (ports.empty())
-		return false;
-	std::list<port_type>::iterator portItr = ports.begin();
-	for (int i = std::rand() % ports.size(); i > 0; i--)
-		portItr++;
-	ret = *portItr;
-	ports.erase(portItr);
-
-	return true;
-}
+lwm_client client;
 
 IMPLEMENT_APP(MyApp)
 
@@ -61,12 +34,11 @@ bool MyApp::OnInit()
 
 		std::srand(static_cast<unsigned int>(std::time(NULL)));
 		for (; portsBegin <= portsEnd; portsBegin++)
-			inter.free_rand_port(portsBegin);
-		srv = std::make_unique<msgr_proto::server>(main_io_service, misc_io_service, inter);
+			client.free_rand_port(portsBegin);
+		srv = std::make_unique<msgr_proto::server>(main_io_service, misc_io_service, client);
 
-		form = new mainFrame(wxT("Messenger"));
+		form = new mainFrame(wxT("LWM"));
 		form->Show();
-		inter.set_frame(form);
 
 		if (threadNetwork->Run() != wxTHREAD_NO_ERROR)
 		{
