@@ -8,31 +8,36 @@
 class lwm_client :public msgr_inter
 {
 public:
-	enum err_t {
+	enum predefined_err {
 		ERR_SUCCESS,
 		ERR_FAILURE,
 		ERR_DISCONNECTED
 	};
+	typedef uint8_t err_t;
 
 	enum operation_t {
 		OP_LIST,
 		OP_ADD,
 		OP_DEL,
 		OP_INFO,
-		OP_MODIFY
+		OP_MODIFY,
+
+		OP_LOGIN
 	};
 
 	enum category_t {
 		CAT_GROUP,
 		CAT_WORK,
-		CAT_MEMBER
+		CAT_MEMBER,
+
+		CAT_NOCAT
 	};
 
 	typedef uint32_t id_type;
 
 	struct request
 	{
-		request(){}
+		request() :cat(CAT_NOCAT) {}
 		request(operation_t _op, category_t _cat, id_type _id)
 			:op(_op), cat(_cat), id(_id)
 		{}
@@ -43,21 +48,16 @@ public:
 
 	struct response
 	{
-		response(const request& _req, err_t _err, const std::string& _data)
-			:req(_req), err(_err), data(_data)
-		{}
-		response(const request& _req, err_t _err, std::string&& _data)
-			:req(_req), err(_err), data(_data)
-		{}
 		response(err_t _err, const std::string& _data)
-			:err(_err), data(_data)
+			:err(_err), data(_data.data()), data_size(_data.size())
 		{}
-		response(err_t _err, std::string&& _data)
-			:err(_err), data(_data)
+		response(const request& _req, err_t _err, const char* _data, size_t _size)
+			:err(_err), data(_data), data_size(_size)
 		{}
 		request req;
 		err_t err;
-		std::string data;
+		const char *data;
+		size_t data_size;
 	};
 
 	typedef std::function<void(const response&)> lwm_callback;

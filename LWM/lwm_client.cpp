@@ -6,7 +6,7 @@ const std::string empty_string;
 void lwm_client::on_data(user_id_type id, const std::string& data)
 {
 	assert(id == server_id);
-	call_callback(response(pending.front(), ERR_SUCCESS, data));
+	call_callback(response(pending.front(), data.front(), data.data(), data.size() - 1));
 	pending.pop_front();
 }
 
@@ -37,6 +37,7 @@ void lwm_client::login(const std::string& name, const std::string& pass)
 	data.append(reinterpret_cast<const char*>(&pass_len), sizeof(data_length_type));
 	data.append(pass);
 
+	pending.push_back(request(OP_LOGIN, CAT_NOCAT, 0));
 	srv->send_data(server_id, data, msgr_proto::session::priority_sys);
 }
 

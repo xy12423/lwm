@@ -44,6 +44,11 @@ bool MyApp::OnInit()
 			client.free_rand_port(portsBegin);
 		srv = std::make_unique<msgr_proto::server>(main_io_service, misc_io_service, client);
 
+		if (threadNetwork->Run() != wxTHREAD_NO_ERROR)
+			throw(std::runtime_error("Can't run iosrvThread"));
+		if (threadMisc->Run() != wxTHREAD_NO_ERROR)
+			throw(std::runtime_error("Can't run iosrvThread"));
+
 		std::promise<int> connect_promise;
 		std::future<int> connect_future = connect_promise.get_future();
 		client.set_callback([&connect_promise](const lwm_client::response &response) {
@@ -55,11 +60,6 @@ bool MyApp::OnInit()
 
 		form = new mainFrame(wxT("LWM"));
 		form->Show();
-
-		if (threadNetwork->Run() != wxTHREAD_NO_ERROR)
-			throw(std::runtime_error("Can't run iosrvThread"));
-		if (threadMisc->Run() != wxTHREAD_NO_ERROR)
-			throw(std::runtime_error("Can't run iosrvThread"));
 	}
 	catch (std::exception &ex)
 	{

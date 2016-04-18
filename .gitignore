@@ -192,8 +192,11 @@ GeneratedArtifacts/
 _Pvt_Extensions/
 ModelManifest.xml
 
-#Assistance UI design project
+# Assistance UI design project
 LWM-UI/
 
-#Key files
+# Data files
 *.privatekey
+*.publickey
+*.config
+*.data
