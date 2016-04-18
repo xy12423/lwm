@@ -50,17 +50,17 @@ mainFrame::mainFrame(const wxString &title)
 		EmptyList
 		);
 	buttonGroupAdd = new wxButton(groupBox, ID_BUTTONGROUPADD,
-		wxT(""),
+		wxT("添加"),
 		wxPoint(6, _GUI_GAP + 202),
 		wxSize(69, 26)
 		);
 	buttonGroupRename = new wxButton(groupBox, ID_BUTTONGROUPRENAME,
-		wxT(""),
+		wxT("重命名"),
 		wxPoint(81, _GUI_GAP + 202),
 		wxSize(70, 26)
 		);
 	buttonGroupDel = new wxButton(groupBox, ID_BUTTONGROUPDEL,
-		wxT(""),
+		wxT("删除"),
 		wxPoint(157, _GUI_GAP + 202),
 		wxSize(69, 26)
 		);
@@ -77,22 +77,22 @@ mainFrame::mainFrame(const wxString &title)
 		EmptyList
 		);
 	buttonWorkAdd = new wxButton(groupBox, ID_BUTTONWORKADD,
-		wxT(""),
+		wxT("添加"),
 		wxPoint(6, _GUI_GAP + 218),
 		wxSize(50, 33)
 		);
 	buttonWorkInfo = new wxButton(groupBox, ID_BUTTONWORKINFO,
-		wxT(""),
+		wxT("信息"),
 		wxPoint(62, _GUI_GAP + 218),
 		wxSize(51, 33)
 		);
 	buttonWorkEdit = new wxButton(groupBox, ID_BUTTONWORKEDIT,
-		wxT(""),
+		wxT("更改"),
 		wxPoint(119, _GUI_GAP + 218),
 		wxSize(51, 33)
 		);
 	buttonWorkDel = new wxButton(groupBox, ID_BUTTONWORKDEL,
-		wxT(""),
+		wxT("删除"),
 		wxPoint(176, _GUI_GAP + 218),
 		wxSize(50, 33)
 		);
@@ -119,12 +119,12 @@ mainFrame::mainFrame(const wxString &title)
 		EmptyList
 		);
 	buttonMemberAdd = new wxButton(groupBox, ID_BUTTONMEMBERADD,
-		wxT(""),
+		wxT("添加"),
 		wxPoint(6, _GUI_GAP + 481),
 		wxSize(100, 30)
 		);
 	buttonMemberDel = new wxButton(groupBox, ID_BUTTONMEMBERDEL,
-		wxT(""),
+		wxT("删除"),
 		wxPoint(112, _GUI_GAP + 481),
 		wxSize(100, 30)
 		);
@@ -172,7 +172,7 @@ mainFrame::mainFrame(const wxString &title)
 		wxTE_MULTILINE
 		);
 	buttonMemberApply = new wxButton(groupBox, ID_BUTTONMEMBERAPPLY,
-		wxT(""),
+		wxT("应用更改"),
 		wxPoint(6, _GUI_GAP + 240),
 		wxSize(286, 37)
 		);
