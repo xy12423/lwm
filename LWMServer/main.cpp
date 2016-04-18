@@ -149,7 +149,7 @@ int main(int argc, char *argv[])
 				config_items[arg.substr(0, pos)] = arg.substr(pos + 1);
 		}
 
-		port_type portListener = 4826;
+		port_type portListener = 4836;
 		port_type portsBegin = 5000, portsEnd = 9999;
 		bool use_v6 = false;
 
@@ -159,8 +159,8 @@ int main(int argc, char *argv[])
 			portListener = static_cast<port_type>(std::stoi(arg));
 			std::cout << "Listening " << arg << std::endl;
 		}
-		catch (std::out_of_range &) { portListener = 4826; }
-		catch (std::invalid_argument &) { portListener = 4826; }
+		catch (std::out_of_range &) { portListener = 4836; }
+		catch (std::invalid_argument &) { portListener = 4836; }
 		try
 		{
 			std::string &arg = config_items.at("ports");
