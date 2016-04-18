@@ -22,6 +22,86 @@ volatile bool server_on = true;
 	memcpy(reinterpret_cast<char*>(&(x)), dataItr, size_length);	\
 	dataItr += size_length
 
+void ltrim(std::string& str)
+{
+	if (str.empty())
+		return;
+	std::string::iterator itr = str.begin(), itrEnd = str.end();
+	for (; itr != itrEnd; itr++)
+		if (!isspace(*itr))
+			break;
+	if (itr != itrEnd)
+		str.erase(str.begin(), itr);
+}
+
+void rtrim(std::string& str)
+{
+	if (str.empty())
+		return;
+	while (isspace(str.back()))
+		str.pop_back();
+}
+
+void trim(std::string& str)
+{
+	ltrim(str);
+	rtrim(str);
+}
+
+void lwm_server::write_data()
+{
+	std::ofstream fout(data_file, std::ios_base::out | std::ios_base::binary);
+	if (!fout.is_open())
+		return;
+	fout.write(reinterpret_cast<const char*>(&data_ver), sizeof(uint32_t));
+	uint32_t size = user_records.size();
+	fout.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
+	for (const std::pair<std::string, user_record> &pair : user_records)
+	{
+		const user_record &user = pair.second;
+		size = user.name.size();
+		fout.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
+		fout.write(user.name.data(), size);
+		fout.write(user.passwd.data(), hash_size);
+		size = static_cast<uint32_t>(user.group);
+		fout.write(reinterpret_cast<char*>(&size), sizeof(uint32_t));
+	}
+}
+
+void lwm_server::read_data()
+{
+	if (!fs::exists(data_file))
+	{
+		write_data();
+		return;
+	}
+	std::ifstream fin(data_file, std::ios_base::in | std::ios_base::binary);
+
+	uint32_t data_file_ver;
+	fin.read(reinterpret_cast<char*>(&data_file_ver), sizeof(uint32_t));
+	if (data_file_ver != data_ver)
+	{
+		std::cout << "Incompatible data file.Will not read." << std::endl;
+		return;
+	}
+	uint32_t userCount, size;
+	fin.read(reinterpret_cast<char*>(&userCount), sizeof(uint32_t));
+	char passwd_buf[hash_size];
+	for (; userCount > 0; userCount--)
+	{
+		user_record user;
+		fin.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
+		std::unique_ptr<char[]> buf = std::make_unique<char[]>(size);
+		fin.read(buf.get(), size);
+		user.name = std::string(buf.get(), size);
+		fin.read(passwd_buf, hash_size);
+		user.passwd = std::string(passwd_buf, hash_size);
+		fin.read(reinterpret_cast<char*>(&size), sizeof(uint32_t));
+		user.group = static_cast<user_record::group_type>(size);
+		user_records.emplace(user.name, user);
+	}
+}
+
 void lwm_server::on_data(user_id_type id, const std::string &data)
 {
 	try
@@ -113,6 +193,97 @@ void lwm_server::broadcast_data(int src, const std::string &data, int priority)
 			send_data(static_cast<user_id_type>(target), data, priority);
 		}
 	}
+}
+
+std::string lwm_server::process_command(std::string cmd, user_record& user)
+{
+	user_record::group_type group = user.group;
+	std::string ret;
+
+	int pos = cmd.find(' ');
+	std::string args;
+	if (pos != std::string::npos)
+	{
+		args.assign(cmd, pos + 1, std::string::npos);
+		cmd.erase(pos);
+	}
+	trim(args);
+
+	if (cmd == "op")
+	{
+		if (group >= user_record::ADMIN)
+		{
+			user_record_list::iterator itr = user_records.find(args);
+			if (itr != user_records.end())
+			{
+				itr->second.group = user_record::ADMIN;
+				main_io_service.post([this]() {
+					write_data();
+				});
+				ret = "Opped " + itr->second.name;
+			}
+		}
+	}
+	else if (cmd == "reg")
+	{
+		if (group >= user_record::ADMIN)
+		{
+			pos = args.find(' ');
+			if (pos != std::string::npos)
+			{
+				cmd = args.substr(0, pos);
+				args.erase(0, pos);
+				trim(cmd);
+				trim(args);
+				std::string hashed_passwd;
+				hash(args, hashed_passwd);
+
+				user_record_list::iterator itr = user_records.find(cmd);
+				if (itr == user_records.end())
+				{
+					user_records.emplace(cmd, user_record(cmd, hashed_passwd, user_record::USER));
+					main_io_service.post([this]() {
+						write_data();
+					});
+					ret = "Registered " + cmd;
+				}
+			}
+		}
+	}
+	else if (cmd == "unreg")
+	{
+		if (group >= user_record::ADMIN)
+		{
+			user_record_list::iterator itr = user_records.find(args);
+			if (itr != user_records.end())
+			{
+				user_records.erase(itr);
+				main_io_service.post([this]() {
+					write_data();
+				});
+				ret = "Unregistered " + args;
+			}
+		}
+	}
+	else if (cmd == "changepass")
+	{
+		user.passwd.clear();
+		hash(args, user.passwd);
+		main_io_service.post([this]() {
+			write_data();
+		});
+		ret = "Password changed";
+	}
+	else if (cmd == "stop")
+	{
+		if (group >= user_record::CONSOLE)
+		{
+			server_on = false;
+			exit_promise.set_value();
+			ret = "Stopping server";
+		}
+	}
+	return ret;
 }
 
 bool lwm_server::new_rand_port(port_type &ret)
@@ -221,7 +392,6 @@ int main(int argc, char *argv[])
 			user_root.name = "Server";
 			user_root.group = user_record::CONSOLE;
 			std::string command;
-			/*
 			while (server_on)
 			{
 				std::getline(std::cin, command);
@@ -229,7 +399,6 @@ int main(int argc, char *argv[])
 				if (!ret.empty())
 					std::cout << ret << std::endl;
 			}
-			*/
 		});
 		input_thread.detach();
 

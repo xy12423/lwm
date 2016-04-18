@@ -57,10 +57,12 @@ public:
 	inline void send_data(user_id_type id, const std::string &data, int priority) { srv->send_data(id, data, priority); };
 	void broadcast_data(int id, const std::string &data, int priority);
 
+	std::string process_command(std::string cmd, user_record& user);
+
 	void set_static_port(port_type port) { static_port = port; };
 private:
-	void read_data() {};
-	void write_data() {};
+	void read_data();
+	void write_data();
 	void read_config() {};
 
 	const char *config_file = ".config";
