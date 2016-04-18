@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "crypto.h"
 #include "session.h"
+#include "lwm_client.h"
 #include "main.h"
 #include "FrmLogin.h"
 
@@ -17,6 +18,8 @@ const int _GUI_GAP = 0;
 const int _GUI_SIZE_X = 780;
 const int _GUI_SIZE_Y = 580;
 #endif
+
+extern lwm_client client;
 
 const size_t status_count = 3;
 wxString status_list[status_count] = {
@@ -186,4 +189,18 @@ mainFrame::mainFrame(const wxString &title)
 
 	FrmLogin login(wxT("µÇÂ¼"));
 	login.ShowModal();
+
+	std::string name(wxConvUTF8.cWC2MB(login.GetName().c_str()));
+	std::string pass(wxConvUTF8.cWC2MB(login.GetPass().c_str()));
+
+	std::promise<int> login_promise;
+	std::future<int> login_future = login_promise.get_future();
+	client.set_callback([&login_promise](const lwm_client::response &response) {
+		login_promise.set_value(response.err);
+	});
+	client.login(name, pass);
+	if (login_future.get() != lwm_client::ERR_SUCCESS)
+	{
+		wxMessageBox(wxT("µÇÂ¼Ê§°Ü"), "Error", wxOK | wxICON_ERROR);
+	}
 }

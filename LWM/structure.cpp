@@ -10,7 +10,7 @@ workListTp workList;
 void group::submit()
 {
 	std::string data;
-	std::string name_utf8 = wxConvUTF8.cWC2MB(name.c_str());
+	std::string name_utf8(wxConvUTF8.cWC2MB(name.c_str()));
 	uint32_t name_len = boost::endian::native_to_little(static_cast<uint32_t>(name_utf8.size()));
 	data.append(reinterpret_cast<char*>(&name_len), sizeof(uint32_t));
 	data.append(name_utf8);
@@ -26,7 +26,7 @@ void group::submit()
 void member::submit()
 {
 	std::string data;
-	std::string str_utf8 = wxConvUTF8.cWC2MB(name.c_str());
+	std::string str_utf8(wxConvUTF8.cWC2MB(name.c_str()));
 	uint32_t str_len = boost::endian::native_to_little(static_cast<uint32_t>(str_utf8.size()));
 	data.append(reinterpret_cast<char*>(&str_len), sizeof(uint32_t));
 	data.append(str_utf8);
@@ -57,7 +57,7 @@ void member::submit()
 void work::submit()
 {
 	std::string data;
-	std::string str_utf8 = wxConvUTF8.cWC2MB(name.c_str());
+	std::string str_utf8(wxConvUTF8.cWC2MB(name.c_str()));
 	uint32_t str_len = boost::endian::native_to_little(static_cast<uint32_t>(str_utf8.size()));
 	data.append(reinterpret_cast<char*>(&str_len), sizeof(uint32_t));
 	data.append(str_utf8);

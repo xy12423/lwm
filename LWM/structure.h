@@ -32,14 +32,22 @@ extern grpListTp grpList;
 
 struct uExtInfo
 {
+	enum status_tp
+	{
+		ST_AVAILABLE,
+		ST_BUSY,
+		ST_UNAVAILABLE
+	};
+
 	uExtInfo() {}
-	uExtInfo(const std::wstring &_src, const std::wstring &_info)
-		:src(_src), info(_info) {}
-	uExtInfo(std::wstring &&_src, std::wstring &&_info)
-		:src(_src), info(_info) {}
+	uExtInfo(const std::wstring &_src, const std::wstring &_info, status_tp _status)
+		:src(_src), info(_info), status(_status) {}
+	uExtInfo(std::wstring &&_src, std::wstring &&_info, status_tp _status)
+		:src(_src), info(_info), status(_status) {}
 
 	std::wstring src;
 	std::wstring info;
+	status_tp status;
 };
 
 class member
