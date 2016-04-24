@@ -1,7 +1,4 @@
 #include "stdafx.h"
-#include "crypto.h"
-#include "session.h"
-#include "main.h"
 #include "FrmLogin.h"
 
 #ifdef __WXMSW__

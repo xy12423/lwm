@@ -90,6 +90,8 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\boost;C:\cpplibs\include;C:\wxWidgets\include;C:\wxWidgets\lib\vc_lib\mswud</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <MultiProcessorCompilation>
+      </MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -106,6 +108,8 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\boost;C:\cpplibs\include;C:\wxWidgets\include;C:\wxWidgets\lib\vc_lib\mswud</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <MultiProcessorCompilation>
+      </MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -124,6 +128,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\boost;C:\cpplibs\include;C:\wxWidgets\include;C:\wxWidgets\lib\vc_lib\mswu</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -144,6 +149,7 @@
       <SDLCheck>true</SDLCheck>
       <AdditionalIncludeDirectories>C:\boost;C:\cpplibs\include;C:\wxWidgets\include;C:\wxWidgets\lib\vc_lib\mswu</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -156,6 +162,7 @@
   <ItemGroup>
     <ClInclude Include="crypto.h" />
     <ClInclude Include="FrmLogin.h" />
+    <ClInclude Include="FrmMain.h" />
     <ClInclude Include="FrmWorkInfo.h" />
     <ClInclude Include="iosrvThread.h" />
     <ClInclude Include="lwm_client.h" />
@@ -167,11 +174,11 @@
   <ItemGroup>
     <ClCompile Include="crypto.cpp" />
     <ClCompile Include="FrmLogin.cpp" />
+    <ClCompile Include="FrmMain.cpp" />
     <ClCompile Include="FrmWorkInfo.cpp" />
     <ClCompile Include="iosrvThread.cpp" />
     <ClCompile Include="lwm_client.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="mainFrame.cpp" />
     <ClCompile Include="session.cpp" />
     <ClCompile Include="session_server.cpp" />
     <ClCompile Include="stdafx.cpp">

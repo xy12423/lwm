@@ -1,6 +1,7 @@
 #pragma once
 
 #ifndef _H_FRM_LOGIN
+#define _H_FRM_LOGIN
 
 class FrmLogin : public wxDialog
 {

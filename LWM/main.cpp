@@ -1,9 +1,9 @@
 #include "stdafx.h"
-#include "crypto.h"
 #include "session.h"
 #include "iosrvThread.h"
 #include "lwm_client.h"
 #include "main.h"
+#include "FrmLogin.h"
 
 const char* privatekeyFile = ".privatekey";
 
@@ -13,9 +13,35 @@ asio::io_service main_io_service, misc_io_service;
 std::unique_ptr<msgr_proto::server> srv;
 lwm_client client;
 
-IMPLEMENT_APP(MyApp)
+bool LWM::Login()
+{
+	FrmLogin login(wxT("µÇÂ¼"));
+	login.ShowModal();
 
-bool MyApp::OnInit()
+	std::string name(wxConvUTF8.cWC2MB(login.GetName().c_str()));
+	std::string pass(wxConvUTF8.cWC2MB(login.GetPass().c_str()));
+
+	std::promise<int> login_promise;
+	std::future<int> login_future = login_promise.get_future();
+	client.set_callback([&login_promise](lwm_client::response response) {
+		login_promise.set_value(response.err);
+	});
+	client.login(name, pass);
+	return login_future.get() == lwm_client::ERR_SUCCESS;
+}
+
+void LWM::OnResponse(lwm_client::response res)
+{
+	switch (res.req.op)
+	{
+		case lwm_client::OP_INFO:
+			break;
+	}
+}
+
+IMPLEMENT_APP(LWM)
+
+bool LWM::OnInit()
 {
 	int stage = 0;
 	try
@@ -54,12 +80,38 @@ bool MyApp::OnInit()
 		client.set_callback([&connect_promise](const lwm_client::response &response) {
 			connect_promise.set_value(response.err);
 		});
+		std::future<void> future = std::async(std::launch::async, [&connect_promise]() {
+			wxSleep(10);
+			try
+			{
+				connect_promise.set_value(lwm_client::ERR_TIMED_OUT);
+			}
+			catch (...) {}
+		});
 		client.connect(addr, port);
 		if (connect_future.get() != lwm_client::ERR_SUCCESS)
 			throw(std::runtime_error("Failed to connect to server"));
 
-		form = new mainFrame(wxT("LWM"));
+		if (!Login())
+		{
+			wxMessageBox(wxT("µÇÂ¼Ê§°Ü"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+
+		form = new FrmMain(wxT("LWM"));
 		form->Show();
+	}
+	catch (int)
+	{
+		switch (stage)
+		{
+			case 2:
+				threadMisc->Delete();
+			case 1:
+				threadNetwork->Delete();
+			default:
+				return false;
+		}
 	}
 	catch (std::exception &ex)
 	{
@@ -80,7 +132,7 @@ bool MyApp::OnInit()
 	return true;
 }
 
-int MyApp::OnExit()
+int LWM::OnExit()
 {
 	try
 	{
