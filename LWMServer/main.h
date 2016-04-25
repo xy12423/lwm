@@ -35,6 +35,35 @@ const int server_uid = -1;
 class lwm_server :public server_interface
 {
 public:
+	enum predefined_err {
+		ERR_SUCCESS,
+		ERR_FAILURE,
+		ERR_DISCONNECTED,
+		ERR_TIMED_OUT,
+	};
+	typedef uint8_t err_t;
+
+	enum operation_t {
+		OP_LIST,
+		OP_ADD,
+		OP_DEL,
+		OP_INFO,
+		OP_MODIFY,
+
+		OP_LOGIN
+	};
+
+	enum category_t {
+		CAT_GROUP,
+		CAT_WORK,
+		CAT_MEMBER,
+
+		CAT_NOCAT
+	};
+
+	typedef uint16_t id_type;
+	typedef uint32_t data_size_type;
+
 	lwm_server() {
 		read_config();
 		read_data();
@@ -43,6 +72,7 @@ public:
 		initKey();
 	}
 	~lwm_server() {
+		mysql_close(sql_conn);
 		write_data();
 	}
 
@@ -60,10 +90,11 @@ public:
 	std::string process_command(std::string cmd, user_record& user);
 
 	void set_static_port(port_type port) { static_port = port; };
+	bool init_sql_conn();
 private:
 	void read_data();
 	void write_data();
-	void read_config() {};
+	void read_config();
 
 	const char *config_file = ".config";
 	const char *data_file = ".data";
@@ -74,6 +105,8 @@ private:
 
 	user_record_list user_records;
 	user_ext_list user_exts;
+
+	MYSQL *sql_conn;
 };
 
 typedef std::unordered_map<std::string, std::string> config_table_tp;

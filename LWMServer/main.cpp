@@ -7,20 +7,11 @@ const std::string empty_string;
 const char *privatekeyFile = ".privatekey";
 
 std::promise<void> exit_promise;
-
-const char OPERATION_SUCCESS = 0;
-const char OPERATION_FAILURE = -1;
+config_table_tp config_items;
 
 asio::io_service main_io_service, misc_io_service;
 lwm_server inter;
-config_table_tp config_items;
 volatile bool server_on = true;
-
-#define checkErr(x) if (dataItr + (x) > dataEnd) throw(0)
-#define read_uint(x)												\
-	checkErr(size_length);											\
-	memcpy(reinterpret_cast<char*>(&(x)), dataItr, size_length);	\
-	dataItr += size_length
 
 void ltrim(std::string& str)
 {
@@ -30,8 +21,7 @@ void ltrim(std::string& str)
 	for (; itr != itrEnd; itr++)
 		if (!isspace(*itr))
 			break;
-	if (itr != itrEnd)
-		str.erase(str.begin(), itr);
+	str.erase(str.begin(), itr);
 }
 
 void rtrim(std::string& str)
@@ -102,6 +92,40 @@ void lwm_server::read_data()
 	}
 }
 
+void lwm_server::read_config()
+{
+	if (!fs::exists(config_file))
+		return;
+	std::ifstream fin(config_file);
+
+	std::string line;
+	std::getline(fin, line);
+	while (!fin.eof())
+	{
+		trim(line);
+		if (!line.empty() && line.front() != '#')
+		{
+			size_t pos = line.find('=');
+			if (pos == std::string::npos)
+				config_items.emplace(std::move(line), empty_string);
+			else
+			{
+				std::string name = line.substr(0, pos), val = line.substr(pos + 1);
+				rtrim(name);
+				ltrim(val);
+				config_items.emplace(std::move(name), std::move(val));
+			}
+		}
+		std::getline(fin, line);
+	}
+}
+
+#define checkErr(x) if (dataItr + (x) > dataEnd) throw(0)
+#define read_uint(x)												\
+	checkErr(size_length);											\
+	memcpy(reinterpret_cast<char*>(&(x)), dataItr, size_length);	\
+	dataItr += size_length
+
 void lwm_server::on_data(user_id_type id, const std::string &data)
 {
 	try
@@ -139,17 +163,29 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 						record.logged_in = true;
 						record.id = id;
 
-						send_data(id, { OPERATION_SUCCESS }, msgr_proto::session::priority_sys);
+						send_data(id, { ERR_SUCCESS }, msgr_proto::session::priority_sys);
 					}
 				}
 
 				if (user.current_stage != user_ext::LOGGED_IN)
-					send_data(id, { OPERATION_FAILURE }, msgr_proto::session::priority_sys);
+					send_data(id, { ERR_FAILURE }, msgr_proto::session::priority_sys);
 
 				break;
 			}
 			case user_ext::LOGGED_IN:
 			{
+				checkErr(1);
+				char operation = *dataItr;
+				dataItr++;
+
+				switch (operation)
+				{
+					case OP_LIST:
+						//break;
+					default:
+						send_data(id, { ERR_FAILURE }, msgr_proto::session::priority_sys);
+				}
+
 				break;
 			}
 		}
@@ -303,13 +339,36 @@ bool lwm_server::new_rand_port(port_type &ret)
 	return true;
 }
 
-int main(int argc, char *argv[])
+bool lwm_server::init_sql_conn()
 {
-
-#ifdef NDEBUG
 	try
 	{
-#endif
+		std::string &addr = config_items.at("sql_addr");
+		std::string &sql_port_str = config_items.at("sql_port");
+		port_type sql_port = static_cast<port_type>(std::stoi(sql_port_str));
+		std::string &user = config_items.at("sql_user");
+		std::string &pass = config_items.at("sql_pass");
+		std::string &db_name = config_items.at("sql_db");
+
+		MYSQL *conn = mysql_init(nullptr);
+		if (!conn)
+			throw(std::runtime_error("Failed to init connect to SQL"));
+		conn = mysql_real_connect(conn, addr.c_str(), user.c_str(), pass.c_str(), db_name.c_str(), sql_port, nullptr, 0);
+		if (!conn)
+			throw(std::runtime_error("Failed to connect to SQL"));
+
+		sql_conn = conn;
+		std::cout << "Connected to SQL server at " << addr << ':' << sql_port << std::endl;
+	}
+	catch (std::out_of_range &) { return false; }
+	catch (std::invalid_argument &) { return false; }
+	return true;
+}
+
+int main(int argc, char *argv[])
+{
+	try
+	{
 		for (int i = 1; i < argc; i++)
 		{
 			std::string arg(argv[i]);
@@ -361,6 +420,11 @@ int main(int argc, char *argv[])
 			std::cout << "Using IPv6 for listening" << std::endl;
 		}
 		catch (std::out_of_range &) {}
+		if (!inter.init_sql_conn())
+		{
+			std::cerr << "SQL connection arg not set or invalid" << std::endl;
+			throw(0);
+		}
 
 		std::srand(static_cast<unsigned int>(std::time(NULL)));
 		for (; portsBegin <= portsEnd; portsBegin++)
@@ -410,12 +474,15 @@ int main(int argc, char *argv[])
 
 		main_iosrv_work.reset();
 		main_io_service.stop();
-#ifdef NDEBUG
+	}
+	catch (int)
+	{
+		return EXIT_FAILURE;
 	}
 	catch (std::exception& e)
 	{
-		std::cerr << "Exception: " << e.what() << "\n";
+		std::cerr << "Exception: " << e.what() << std::endl;
+		return EXIT_FAILURE;
 	}
-#endif
-	return 0;
+	return EXIT_SUCCESS;
 }
