@@ -10,19 +10,19 @@ workListTp workList;
 void load_group(id_type id, data_view& data)
 {
 	data_size_type name_size;
-	data.read(name_size);
+	if (!data.read(name_size)) throw(0);
 	std::wstring name(wxConvUTF8.cMB2WC(data.data));
-	data.skip(name_size);
+	if (!data.skip(name_size)) throw(0);
 
 	group &grp = grpList.try_emplace(id, group(id, std::move(name))).first->second;
 
 	uint16_t user_count;
 	id_type uid;
-	data.read(user_count);
+	if (!data.read(user_count)) throw(0);
 	grp.members.clear();
 	for (int i = 0; i < user_count; i++)
 	{
-		data.read(uid);
+		if (!data.read(uid)) throw(0);
 		grp.members.emplace(uid);
 	}
 }
@@ -44,17 +44,18 @@ lwm_client::err_t list_group()
 	std::future<lwm_client::err_t> list_future = list_promise.get_future();
 	client.set_callback([&list_promise](lwm_client::response response) {
 		if (response.err == lwm_client::ERR_SUCCESS)
-			load_groups(response.data);
+		{
+			try
+			{
+				load_groups(response.data);
+			}
+			catch (int) { response.err = lwm_client::ERR_FAILURE; }
+		}
 		list_promise.set_value(response.err);
 	});
 	client.list(lwm_client::CAT_GROUP);
 
-	lwm_client::err_t err = list_future.get();
-	if (err != lwm_client::ERR_SUCCESS)
-	{
-		return err;
-	}
-	return lwm_client::ERR_SUCCESS;
+	return list_future.get();
 }
 
 void group::submit()

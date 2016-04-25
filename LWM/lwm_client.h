@@ -23,8 +23,8 @@ struct data_view
 		data += sizeof(_Ty);
 		return true;
 	}
-	inline bool read(char* dst, size_t _size) { if (size < _size) return false; memcpy(dst, data, _size); data += _size; size -= _size; }
-	void skip(size_t count) { data += count; size -= count; }
+	inline bool read(char* dst, size_t _size) { if (size < _size) return false; memcpy(dst, data, _size); data += _size; size -= _size;  return true; }
+	bool skip(size_t count) { if (size < count) return false; data += count; size -= count; return true; }
 
 	const char* data;
 	size_t size;

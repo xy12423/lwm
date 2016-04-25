@@ -2,8 +2,10 @@
 #include "session.h"
 #include "iosrvThread.h"
 #include "lwm_client.h"
+#include "structure.h"
 #include "main.h"
 #include "FrmLogin.h"
+#include "FrmInit.h"
 
 const char* privatekeyFile = ".privatekey";
 
@@ -12,6 +14,26 @@ iosrvThread *threadNetwork, *threadMisc;
 asio::io_service main_io_service, misc_io_service;
 std::unique_ptr<msgr_proto::server> srv;
 lwm_client client;
+
+bool LWM::ConnectTo(const std::string &addr, port_type port)
+{
+	std::promise<int> connect_promise;
+	std::future<int> connect_future = connect_promise.get_future();
+	client.set_callback([&connect_promise](const lwm_client::response &response) {
+		connect_promise.set_value(response.err);
+	});
+	std::future<void> future = std::async(std::launch::async, [&connect_promise]() {
+		wxSleep(10);
+		try
+		{
+			connect_promise.set_value(lwm_client::ERR_TIMED_OUT);
+		}
+		catch (...) {}
+	});
+	client.connect(addr, port);
+
+	return connect_future.get() == lwm_client::ERR_SUCCESS;
+}
 
 bool LWM::Login()
 {
@@ -75,26 +97,27 @@ bool LWM::OnInit()
 		if (threadMisc->Run() != wxTHREAD_NO_ERROR)
 			throw(std::runtime_error("Can't run iosrvThread"));
 
-		std::promise<int> connect_promise;
-		std::future<int> connect_future = connect_promise.get_future();
-		client.set_callback([&connect_promise](const lwm_client::response &response) {
-			connect_promise.set_value(response.err);
-		});
-		std::future<void> future = std::async(std::launch::async, [&connect_promise]() {
-			wxSleep(10);
-			try
-			{
-				connect_promise.set_value(lwm_client::ERR_TIMED_OUT);
-			}
-			catch (...) {}
-		});
-		client.connect(addr, port);
-		if (connect_future.get() != lwm_client::ERR_SUCCESS)
-			throw(std::runtime_error("Failed to connect to server"));
+		FrmInit init(wxT("初始化"));
+		init.Show();
+		init.SetStage(0);
+
+		if (!ConnectTo(addr, port))
+		{
+			wxMessageBox(wxT("无法连接至服务器"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+		init.SetStage(1);
 
 		if (!Login())
 		{
 			wxMessageBox(wxT("登录失败"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+		init.SetStage(2);
+
+		if (list_group() != lwm_client::ERR_SUCCESS)
+		{
+			wxMessageBox(wxT("无法加载组信息"), "Error", wxOK | wxICON_ERROR);
 			throw(1);
 		}
 

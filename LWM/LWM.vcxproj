@@ -161,6 +161,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="crypto.h" />
+    <ClInclude Include="FrmInit.h" />
     <ClInclude Include="FrmLogin.h" />
     <ClInclude Include="FrmMain.h" />
     <ClInclude Include="FrmWorkInfo.h" />
@@ -173,6 +174,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="crypto.cpp" />
+    <ClCompile Include="FrmInit.cpp" />
     <ClCompile Include="FrmLogin.cpp" />
     <ClCompile Include="FrmMain.cpp" />
     <ClCompile Include="FrmWorkInfo.cpp" />
