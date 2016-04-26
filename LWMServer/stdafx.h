@@ -41,10 +41,14 @@ namespace asio = boost::asio;
 #include <cryptopp/oids.h>
 #include <cryptopp/modes.h>
 
+#include <mysql.h>
+
 #ifdef _MSC_VER
 #ifdef _DEBUG
+#pragma comment (lib, "mariadbclientd.lib")
 #pragma comment (lib, "cryptlibd.lib")
 #else
+#pragma comment (lib, "mariadbclient.lib")
 #pragma comment (lib, "cryptlib.lib")
 #endif
 #pragma comment (lib, "ws2_32.lib")
