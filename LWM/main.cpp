@@ -1,9 +1,11 @@
 #include "stdafx.h"
-#include "crypto.h"
 #include "session.h"
 #include "iosrvThread.h"
 #include "lwm_client.h"
+#include "structure.h"
 #include "main.h"
+#include "FrmLogin.h"
+#include "FrmInit.h"
 
 const char* privatekeyFile = ".privatekey";
 
@@ -13,9 +15,60 @@ asio::io_service main_io_service, misc_io_service;
 std::unique_ptr<msgr_proto::server> srv;
 lwm_client client;
 
-IMPLEMENT_APP(MyApp)
+bool LWM::ConnectTo(const std::string &addr, port_type port)
+{
+	std::shared_ptr<std::promise<int>> connect_promise = std::make_shared<std::promise<int>>();
+	std::future<int> connect_future = connect_promise->get_future();
+	client.set_callback([connect_promise](const lwm_client::response &response) {
+		try
+		{
+			connect_promise->set_value(response.err);
+		}
+		catch (...) {}
+	});
+	std::thread sleep_thread([connect_promise]() {
+		wxSleep(10);
+		try
+		{
+			connect_promise->set_value(lwm_client::ERR_TIMED_OUT);
+		}
+		catch (...) {}
+	});
+	sleep_thread.detach();
+	client.connect(addr, port);
 
-bool MyApp::OnInit()
+	return connect_future.get() == lwm_client::ERR_SUCCESS;
+}
+
+bool LWM::Login()
+{
+	FrmLogin login(wxT("登录"));
+	login.ShowModal();
+
+	std::string name(wxConvUTF8.cWC2MB(login.GetName().c_str()));
+	std::string pass(wxConvUTF8.cWC2MB(login.GetPass().c_str()));
+
+	std::promise<int> login_promise;
+	std::future<int> login_future = login_promise.get_future();
+	client.set_callback([&login_promise](lwm_client::response response) {
+		login_promise.set_value(response.err);
+	});
+	client.login(name, pass);
+	return login_future.get() == lwm_client::ERR_SUCCESS;
+}
+
+void LWM::OnResponse(lwm_client::response res)
+{
+	switch (res.req.op)
+	{
+		case lwm_client::OP_INFO:
+			break;
+	}
+}
+
+IMPLEMENT_APP(LWM)
+
+bool LWM::OnInit()
 {
 	int stage = 0;
 	try
@@ -49,17 +102,44 @@ bool MyApp::OnInit()
 		if (threadMisc->Run() != wxTHREAD_NO_ERROR)
 			throw(std::runtime_error("Can't run iosrvThread"));
 
-		std::promise<int> connect_promise;
-		std::future<int> connect_future = connect_promise.get_future();
-		client.set_callback([&connect_promise](const lwm_client::response &response) {
-			connect_promise.set_value(response.err);
-		});
-		client.connect(addr, port);
-		if (connect_future.get() != lwm_client::ERR_SUCCESS)
-			throw(std::runtime_error("Failed to connect to server"));
+		FrmInit init(wxT("初始化"));
+		init.Show();
+		init.SetStage(0);
 
-		form = new mainFrame(wxT("LWM"));
+		if (!ConnectTo(addr, port))
+		{
+			wxMessageBox(wxT("无法连接至服务器"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+		init.SetStage(1);
+
+		if (!Login())
+		{
+			wxMessageBox(wxT("登录失败"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+		init.SetStage(2);
+
+		if (list_group() != lwm_client::ERR_SUCCESS)
+		{
+			wxMessageBox(wxT("无法加载组信息"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+
+		form = new FrmMain(wxT("LWM"));
 		form->Show();
+	}
+	catch (int)
+	{
+		switch (stage)
+		{
+			case 2:
+				threadMisc->Delete();
+			case 1:
+				threadNetwork->Delete();
+			default:
+				return false;
+		}
 	}
 	catch (std::exception &ex)
 	{
@@ -80,7 +160,7 @@ bool MyApp::OnInit()
 	return true;
 }
 
-int MyApp::OnExit()
+int LWM::OnExit()
 {
 	try
 	{
