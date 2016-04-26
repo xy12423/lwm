@@ -6,6 +6,26 @@
 const std::string empty_string;
 const char *privatekeyFile = ".privatekey";
 
+const std::string category_conv[] = {
+	"group",
+	"work",
+	"member"
+};
+
+struct sql_result
+{
+	sql_result(MYSQL* _con) { res = mysql_store_result(_con); }
+	sql_result(const sql_result &) = delete;
+	sql_result(sql_result &&_res) :res(_res.res) { _res.res = nullptr; }
+	~sql_result() { if (res != nullptr) mysql_free_result(res); }
+
+	inline operator bool() { return res != nullptr; }
+	inline bool operator!() { return res == nullptr; }
+	inline operator MYSQL_RES*() { return res; };
+
+	MYSQL_RES* res;
+};
+
 std::promise<void> exit_promise;
 config_table_tp config_items;
 
@@ -174,17 +194,85 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 			}
 			case user_ext::LOGGED_IN:
 			{
-				checkErr(1);
-				char operation = *dataItr;
-				dataItr++;
-
-				switch (operation)
+				try
 				{
-					case OP_LIST:
-						//break;
-					default:
-						send_data(id, { ERR_FAILURE }, msgr_proto::session::priority_sys);
+					checkErr(1);
+					char operation = *dataItr;
+					dataItr++;
+
+					std::string category_str;
+					checkErr(1);
+					char category = *dataItr;
+					category_str = category_conv[category];
+					dataItr++;
+
+					switch (operation)
+					{
+						case OP_LIST:
+						{
+							if (mysql_query(sql_conn, ("SELECT * FROM `" + category_str + "`").c_str()) != 0)
+								throw(0);
+							sql_result sql_result(sql_conn);
+							if (!sql_result)
+							{
+								throw(0);
+							}
+							else
+							{
+								MYSQL_ROW row;
+								std::string result;
+								result.push_back(ERR_SUCCESS);
+
+								switch (category)
+								{
+									case CAT_GROUP:
+									{
+										while ((row = mysql_fetch_row(sql_result)) != NULL)
+										{
+											id_type gid = static_cast<id_type>(std::stoi(row[0]));
+											result.append(reinterpret_cast<char*>(&gid), sizeof(id_type));
+											data_size_type size_name = strlen(row[1]);
+											result.append(reinterpret_cast<char*>(&size_name), sizeof(data_size_type));
+											result.append(row[1]);
+
+											uint16_t member_count = 0;
+											std::string member_list = row[2];
+											std::string member_list_raw;
+											if (!member_list.empty())
+											{
+												if (member_list.back() != ';')
+													member_list.push_back(';');
+												size_t pos1 = 0, pos2 = member_list.find(';');
+												while (pos2 != std::string::npos)
+												{
+													id_type uid = static_cast<id_type>(std::stoi(member_list.substr(pos1, pos2 - pos1)));
+													member_list_raw.append(reinterpret_cast<char*>(&uid), sizeof(id_type));
+													member_count++;
+													pos1 = pos2 + 1;
+													pos2 = member_list.find(';', pos1);
+												}
+											}
+											result.append(reinterpret_cast<char*>(&member_count), sizeof(uint16_t));
+											result.append(member_list_raw);
+										}
+										send_data(id, result, msgr_proto::session::priority_sys);
+										break;
+									}
+									default:
+										throw(0);
+								}
+
+								if (mysql_errno(sql_conn) != 0)
+									throw(0);
+							}
+							break;
+						}
+						default:
+							throw(0);
+					}
 				}
+				catch (int) { send_data(id, { ERR_FAILURE }, msgr_proto::session::priority_sys); throw; }
+				catch (...) { throw; }
 
 				break;
 			}
