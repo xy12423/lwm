@@ -148,7 +148,7 @@ void lwm_server::read_config()
 
 inline void write_id(std::string& result, const char* id_str)
 {
-	lwm_server::id_type id = static_cast<lwm_server::id_type>(atoi(id_str));
+	lwm_server::id_type id = static_cast<lwm_server::id_type>(std::atoi(id_str));
 	result.append(reinterpret_cast<char*>(&id), sizeof(lwm_server::id_type));
 }
 
@@ -347,7 +347,6 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 	}
 }
 
-#undef write_str
 #undef read_uint
 #undef checkErr
 
