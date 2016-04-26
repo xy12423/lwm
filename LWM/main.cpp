@@ -111,20 +111,33 @@ bool LWM::OnInit()
 			wxMessageBox(wxT("无法连接至服务器"), "Error", wxOK | wxICON_ERROR);
 			throw(1);
 		}
-		init.SetStage(1);
+		init.NextStage();
 
 		if (!Login())
 		{
 			wxMessageBox(wxT("登录失败"), "Error", wxOK | wxICON_ERROR);
 			throw(1);
 		}
-		init.SetStage(2);
+		init.NextStage();
 
-		if (list_group() != lwm_client::ERR_SUCCESS)
+		if (list(lwm_client::CAT_GROUP) != lwm_client::ERR_SUCCESS)
 		{
 			wxMessageBox(wxT("无法加载组信息"), "Error", wxOK | wxICON_ERROR);
 			throw(1);
 		}
+		init.NextStage();
+		if (list(lwm_client::CAT_WORK) != lwm_client::ERR_SUCCESS)
+		{
+			wxMessageBox(wxT("无法加载工作信息"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+		init.NextStage();
+		if (list(lwm_client::CAT_MEMBER) != lwm_client::ERR_SUCCESS)
+		{
+			wxMessageBox(wxT("无法加载成员信息"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+		init.NextStage();
 
 		form = new FrmMain(wxT("LWM"));
 		form->Show();

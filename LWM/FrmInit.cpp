@@ -15,6 +15,7 @@ wxString StageText[] = {
 	wxT("接收组信息..."),
 	wxT("接收工作信息..."),
 	wxT("接收用户信息..."),
+	wxT("完成")
 };
 
 FrmInit::FrmInit(const wxString &title)
@@ -31,8 +32,9 @@ FrmInit::FrmInit(const wxString &title)
 	);
 }
 
-void FrmInit::SetStage(int stage)
+void FrmInit::SetStage(int _stage)
 {
+	stage = _stage;
 	assert(stage >= 0 && stage < 4);
 	label->SetLabelText(StageText[stage]);
 }

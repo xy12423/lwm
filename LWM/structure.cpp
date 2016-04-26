@@ -7,6 +7,19 @@ grpListTp grpList;
 memListTp memList;
 workListTp workList;
 
+void read_list(data_view& data, std::set<id_type>& ret)
+{
+	uint16_t item_count;
+	id_type id;
+	if (!data.read(item_count)) throw(0);
+	ret.clear();
+	for (int i = 0; i < item_count; i++)
+	{
+		if (!data.read(id)) throw(0);
+		ret.emplace(id);
+	}
+}
+
 void load_group(id_type id, data_view& data)
 {
 	data_size_type name_size;
@@ -16,44 +29,79 @@ void load_group(id_type id, data_view& data)
 
 	group &grp = grpList.try_emplace(id, group(id, std::move(name))).first->second;
 
-	uint16_t user_count;
-	id_type uid;
-	if (!data.read(user_count)) throw(0);
-	grp.members.clear();
-	for (int i = 0; i < user_count; i++)
-	{
-		if (!data.read(uid)) throw(0);
-		grp.members.emplace(uid);
-	}
+	read_list(data, grp.members);
 }
 
-void load_groups(data_view& data)
+void load_work(id_type id, data_view& data)
+{
+	data_size_type str_size;
+	if (!data.read(str_size)) throw(0);
+	std::wstring name(wxConvUTF8.cMB2WC(data.data));
+	if (!data.skip(str_size)) throw(0);
+	if (!data.read(str_size)) throw(0);
+	std::wstring info(wxConvUTF8.cMB2WC(data.data));
+	if (!data.skip(str_size)) throw(0);
+
+	work &wrk = workList.try_emplace(id, work(id, std::move(name), std::move(info))).first->second;
+
+	read_list(data, wrk.members);
+}
+
+void load_member(id_type id, data_view& data)
+{
+	data_size_type str_size;
+	if (!data.read(str_size)) throw(0);
+	std::wstring name(wxConvUTF8.cMB2WC(data.data));
+	if (!data.skip(str_size)) throw(0);
+
+	member &mem = memList.try_emplace(id, member(id, std::move(name), uExtInfo())).first->second;
+
+	read_list(data, mem.groups);
+	read_list(data, mem.works);
+
+	if (!data.read(str_size)) throw(0);
+	std::wstring src(wxConvUTF8.cMB2WC(data.data));
+	if (!data.skip(str_size)) throw(0);
+	if (!data.read(str_size)) throw(0);
+	std::wstring info(wxConvUTF8.cMB2WC(data.data));
+	if (!data.skip(str_size)) throw(0);
+
+	mem.extInfo.src = std::move(src);
+	mem.extInfo.info = std::move(info);
+}
+
+void load_list(data_view& data, lwm_client::category_t cat)
 {
 	id_type id;
 	while (data.size != 0)
 	{
 		if (!data.read(id))
 			break;
-		load_group(id, data);
+		switch (cat)
+		{
+			case lwm_client::CAT_GROUP:
+				load_group(id, data);
+				break;
+		}
 	}
 }
 
-lwm_client::err_t list_group()
+lwm_client::err_t list(lwm_client::category_t cat)
 {
 	std::promise<lwm_client::err_t> list_promise;
 	std::future<lwm_client::err_t> list_future = list_promise.get_future();
-	client.set_callback([&list_promise](lwm_client::response response) {
+	client.set_callback([&list_promise, cat](lwm_client::response response) {
 		if (response.err == lwm_client::ERR_SUCCESS)
 		{
 			try
 			{
-				load_groups(response.data);
+				load_list(response.data, cat);
 			}
 			catch (int) { response.err = lwm_client::ERR_FAILURE; }
 		}
 		list_promise.set_value(response.err);
 	});
-	client.list(lwm_client::CAT_GROUP);
+	client.list(cat);
 
 	return list_future.get();
 }

@@ -80,6 +80,8 @@ public:
 	void delWork(id_type wID) { works.erase(wID); submit(); };
 
 	void submit();
+
+	friend void load_member(id_type id, data_view& data);
 private:
 	id_type uID;
 	std::wstring name;
@@ -110,6 +112,8 @@ public:
 	void delMember(id_type uID) { members.erase(uID); submit(); };
 
 	void submit();
+
+	friend void load_work(id_type id, data_view& data);
 private:
 	id_type wID;
 	std::wstring name;
@@ -121,6 +125,8 @@ typedef std::map<id_type, work> workListTp;
 extern workListTp workList;
 
 void load_group(id_type id, data_view& data);
-lwm_client::err_t list_group();
+void load_work(id_type id, data_view& data);
+void load_member(id_type id, data_view& data);
+lwm_client::err_t list(lwm_client::category_t cat);
 
 #endif
