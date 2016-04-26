@@ -6,7 +6,7 @@ const std::string empty_string;
 void lwm_client::on_data(user_id_type id, const std::string& data)
 {
 	assert(id == server_id);
-	call_callback(response(pending.front(), data.front(), data.data(), data.size() - 1));
+	call_callback(response(pending.front(), data.front(), data.data() + 1, data.size() - 1));
 	pending.pop_front();
 }
 

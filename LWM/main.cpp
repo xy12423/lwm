@@ -17,19 +17,24 @@ lwm_client client;
 
 bool LWM::ConnectTo(const std::string &addr, port_type port)
 {
-	std::promise<int> connect_promise;
-	std::future<int> connect_future = connect_promise.get_future();
-	client.set_callback([&connect_promise](const lwm_client::response &response) {
-		connect_promise.set_value(response.err);
-	});
-	std::future<void> future = std::async(std::launch::async, [&connect_promise]() {
-		wxSleep(10);
+	std::shared_ptr<std::promise<int>> connect_promise = std::make_shared<std::promise<int>>();
+	std::future<int> connect_future = connect_promise->get_future();
+	client.set_callback([connect_promise](const lwm_client::response &response) {
 		try
 		{
-			connect_promise.set_value(lwm_client::ERR_TIMED_OUT);
+			connect_promise->set_value(response.err);
 		}
 		catch (...) {}
 	});
+	std::thread sleep_thread([connect_promise]() {
+		wxSleep(10);
+		try
+		{
+			connect_promise->set_value(lwm_client::ERR_TIMED_OUT);
+		}
+		catch (...) {}
+	});
+	sleep_thread.detach();
 	client.connect(addr, port);
 
 	return connect_future.get() == lwm_client::ERR_SUCCESS;
