@@ -1,11 +1,7 @@
 #include "stdafx.h"
-#include "crypto.h"
-#include "session.h"
-#include "lwm_client.h"
-#include "main.h"
-#include "FrmLogin.h"
+#include "FrmMain.h"
 
-wxBEGIN_EVENT_TABLE(mainFrame, wxFrame)
+wxBEGIN_EVENT_TABLE(FrmMain, wxFrame)
 
 wxEND_EVENT_TABLE()
 
@@ -28,7 +24,7 @@ wxString status_list[status_count] = {
 	wxT("不可用")
 };
 
-mainFrame::mainFrame(const wxString &title)
+FrmMain::FrmMain(const wxString &title)
 	:wxFrame(NULL, ID_FRAME, title, wxDefaultPosition, wxSize(_GUI_SIZE_X, _GUI_SIZE_Y))
 {
 	Center();
@@ -50,17 +46,17 @@ mainFrame::mainFrame(const wxString &title)
 		EmptyList
 		);
 	buttonGroupAdd = new wxButton(groupBox, ID_BUTTONGROUPADD,
-		wxT(""),
+		wxT("添加"),
 		wxPoint(6, _GUI_GAP + 202),
 		wxSize(69, 26)
 		);
 	buttonGroupRename = new wxButton(groupBox, ID_BUTTONGROUPRENAME,
-		wxT(""),
+		wxT("重命名"),
 		wxPoint(81, _GUI_GAP + 202),
 		wxSize(70, 26)
 		);
 	buttonGroupDel = new wxButton(groupBox, ID_BUTTONGROUPDEL,
-		wxT(""),
+		wxT("删除"),
 		wxPoint(157, _GUI_GAP + 202),
 		wxSize(69, 26)
 		);
@@ -77,22 +73,22 @@ mainFrame::mainFrame(const wxString &title)
 		EmptyList
 		);
 	buttonWorkAdd = new wxButton(groupBox, ID_BUTTONWORKADD,
-		wxT(""),
+		wxT("添加"),
 		wxPoint(6, _GUI_GAP + 218),
 		wxSize(50, 33)
 		);
 	buttonWorkInfo = new wxButton(groupBox, ID_BUTTONWORKINFO,
-		wxT(""),
+		wxT("信息"),
 		wxPoint(62, _GUI_GAP + 218),
 		wxSize(51, 33)
 		);
 	buttonWorkEdit = new wxButton(groupBox, ID_BUTTONWORKEDIT,
-		wxT(""),
+		wxT("更改"),
 		wxPoint(119, _GUI_GAP + 218),
 		wxSize(51, 33)
 		);
 	buttonWorkDel = new wxButton(groupBox, ID_BUTTONWORKDEL,
-		wxT(""),
+		wxT("删除"),
 		wxPoint(176, _GUI_GAP + 218),
 		wxSize(50, 33)
 		);
@@ -119,12 +115,12 @@ mainFrame::mainFrame(const wxString &title)
 		EmptyList
 		);
 	buttonMemberAdd = new wxButton(groupBox, ID_BUTTONMEMBERADD,
-		wxT(""),
+		wxT("添加"),
 		wxPoint(6, _GUI_GAP + 481),
 		wxSize(100, 30)
 		);
 	buttonMemberDel = new wxButton(groupBox, ID_BUTTONMEMBERDEL,
-		wxT(""),
+		wxT("删除"),
 		wxPoint(112, _GUI_GAP + 481),
 		wxSize(100, 30)
 		);
@@ -172,7 +168,7 @@ mainFrame::mainFrame(const wxString &title)
 		wxTE_MULTILINE
 		);
 	buttonMemberApply = new wxButton(groupBox, ID_BUTTONMEMBERAPPLY,
-		wxT(""),
+		wxT("应用更改"),
 		wxPoint(6, _GUI_GAP + 240),
 		wxSize(286, 37)
 		);
@@ -186,21 +182,4 @@ mainFrame::mainFrame(const wxString &title)
 		wxSize(140, 228),
 		EmptyList
 		);
-
-	FrmLogin login(wxT("登录"));
-	login.ShowModal();
-
-	std::string name(wxConvUTF8.cWC2MB(login.GetName().c_str()));
-	std::string pass(wxConvUTF8.cWC2MB(login.GetPass().c_str()));
-
-	std::promise<int> login_promise;
-	std::future<int> login_future = login_promise.get_future();
-	client.set_callback([&login_promise](const lwm_client::response &response) {
-		login_promise.set_value(response.err);
-	});
-	client.login(name, pass);
-	if (login_future.get() != lwm_client::ERR_SUCCESS)
-	{
-		wxMessageBox(wxT("登录失败"), "Error", wxOK | wxICON_ERROR);
-	}
 }

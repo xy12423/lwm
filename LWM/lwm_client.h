@@ -5,13 +5,39 @@
 
 #include "session.h"
 
+struct data_view
+{
+	data_view(const char* _data, size_t _size)
+		:data(_data), size(_size)
+	{}
+	data_view(const std::string &_data)
+		:data(_data.data()), size(_data.size())
+	{}
+
+	template <typename _Ty>
+	inline bool read(_Ty &ret) {
+		if (size < sizeof(_Ty))
+			return false;
+		size -= sizeof(_Ty);
+		ret = *reinterpret_cast<const _Ty*>(data);
+		data += sizeof(_Ty);
+		return true;
+	}
+	inline bool read(char* dst, size_t _size) { if (size < _size) return false; memcpy(dst, data, _size); data += _size; size -= _size;  return true; }
+	bool skip(size_t count) { if (size < count) return false; data += count; size -= count; return true; }
+
+	const char* data;
+	size_t size;
+};
+
 class lwm_client :public msgr_inter
 {
 public:
 	enum predefined_err {
 		ERR_SUCCESS,
 		ERR_FAILURE,
-		ERR_DISCONNECTED
+		ERR_DISCONNECTED,
+		ERR_TIMED_OUT,
 	};
 	typedef uint8_t err_t;
 
@@ -33,7 +59,8 @@ public:
 		CAT_NOCAT
 	};
 
-	typedef uint32_t id_type;
+	typedef uint16_t id_type;
+	typedef uint32_t data_size_type;
 
 	struct request
 	{
@@ -49,18 +76,17 @@ public:
 	struct response
 	{
 		response(err_t _err, const std::string& _data)
-			:err(_err), data(_data.data()), data_size(_data.size())
+			:err(_err), data(_data)
 		{}
 		response(const request& _req, err_t _err, const char* _data, size_t _size)
-			:err(_err), data(_data), data_size(_size)
+			:err(_err), data(_data, _size)
 		{}
 		request req;
 		err_t err;
-		const char *data;
-		size_t data_size;
+		data_view data;
 	};
 
-	typedef std::function<void(const response&)> lwm_callback;
+	typedef std::function<void(response)> lwm_callback;
 
 	virtual void on_data(user_id_type id, const std::string& data);
 
