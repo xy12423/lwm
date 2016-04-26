@@ -146,6 +146,61 @@ void lwm_server::read_config()
 	memcpy(reinterpret_cast<char*>(&(x)), dataItr, size_length);	\
 	dataItr += size_length
 
+inline void write_id(std::string& result, const char* id_str)
+{
+	lwm_server::id_type id = static_cast<lwm_server::id_type>(atoi(id_str));
+	result.append(reinterpret_cast<char*>(&id), sizeof(lwm_server::id_type));
+}
+
+void write_str(std::string& result, const char* str)
+{
+	if (str)
+	{
+		lwm_server::data_size_type size = strlen(str);
+		result.append(reinterpret_cast<char*>(&size), sizeof(lwm_server::data_size_type));
+		result.append(str);
+	}
+	else
+	{
+		lwm_server::data_size_type size = 0;
+		result.append(reinterpret_cast<char*>(&size), sizeof(lwm_server::data_size_type));
+	}
+}
+
+void write_list(std::string& result, const char* str)
+{
+	uint16_t item_count = 0;
+	if (str)
+	{
+		std::string item, item_list;
+		item_list.clear();
+		for (const char *itr = str; *itr != '\0'; itr++)
+		{
+			if (*itr == ';')
+			{
+				lwm_server::id_type id = static_cast<lwm_server::id_type>(std::stoi(item));
+				item_list.append(reinterpret_cast<char*>(&id), sizeof(lwm_server::id_type));
+				item_count++;
+				item.clear();
+			}
+			else
+				item.push_back(*itr);
+		}
+		if (!item.empty())
+		{
+			lwm_server::id_type id = static_cast<lwm_server::id_type>(std::stoi(item));
+			item_list.append(reinterpret_cast<char*>(&id), sizeof(lwm_server::id_type));
+			item_count++;
+		}
+		result.append(reinterpret_cast<char*>(&item_count), sizeof(uint16_t));
+		result.append(item_list);
+	}
+	else
+	{
+		result.append(reinterpret_cast<char*>(&item_count), sizeof(uint16_t));
+	}
+}
+
 void lwm_server::on_data(user_id_type id, const std::string &data)
 {
 	try
@@ -227,35 +282,36 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 								{
 									case CAT_GROUP:
 									{
-										while ((row = mysql_fetch_row(sql_result)) != NULL)
+										while ((row = mysql_fetch_row(sql_result)) != nullptr)
 										{
-											id_type gid = static_cast<id_type>(std::stoi(row[0]));
-											result.append(reinterpret_cast<char*>(&gid), sizeof(id_type));
-											data_size_type size_name = strlen(row[1]);
-											result.append(reinterpret_cast<char*>(&size_name), sizeof(data_size_type));
-											result.append(row[1]);
-
-											uint16_t member_count = 0;
-											std::string member_list = row[2];
-											std::string member_list_raw;
-											if (!member_list.empty())
-											{
-												if (member_list.back() != ';')
-													member_list.push_back(';');
-												size_t pos1 = 0, pos2 = member_list.find(';');
-												while (pos2 != std::string::npos)
-												{
-													id_type uid = static_cast<id_type>(std::stoi(member_list.substr(pos1, pos2 - pos1)));
-													member_list_raw.append(reinterpret_cast<char*>(&uid), sizeof(id_type));
-													member_count++;
-													pos1 = pos2 + 1;
-													pos2 = member_list.find(';', pos1);
-												}
-											}
-											result.append(reinterpret_cast<char*>(&member_count), sizeof(uint16_t));
-											result.append(member_list_raw);
+											write_id(result, row[0]);	//id
+											write_str(result, row[1]);	//name
+											write_list(result, row[2]);	//member
 										}
-										send_data(id, result, msgr_proto::session::priority_sys);
+										break;
+									}
+									case CAT_WORK:
+									{
+										while ((row = mysql_fetch_row(sql_result)) != nullptr)
+										{
+											write_id(result, row[0]);	//id
+											write_str(result, row[1]);	//name
+											write_str(result, row[2]);	//info
+											write_list(result, row[3]);	//member
+										}
+										break;
+									}
+									case CAT_MEMBER:
+									{
+										while ((row = mysql_fetch_row(sql_result)) != nullptr)
+										{
+											write_id(result, row[0]);	//id
+											write_str(result, row[1]);	//name
+											write_list(result, row[2]);	//group
+											write_list(result, row[3]);	//work
+											write_str(result, row[4]);	//src
+											write_str(result, row[5]);	//info
+										}
 										break;
 									}
 									default:
@@ -264,6 +320,7 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 
 								if (mysql_errno(sql_conn) != 0)
 									throw(0);
+								send_data(id, result, msgr_proto::session::priority_sys);
 							}
 							break;
 						}
@@ -271,8 +328,7 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 							throw(0);
 					}
 				}
-				catch (int) { send_data(id, { ERR_FAILURE }, msgr_proto::session::priority_sys); throw; }
-				catch (...) { throw; }
+				catch (...) { send_data(id, { ERR_FAILURE }, msgr_proto::session::priority_sys); throw; }
 
 				break;
 			}
@@ -291,6 +347,7 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 	}
 }
 
+#undef write_str
 #undef read_uint
 #undef checkErr
 
