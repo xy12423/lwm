@@ -1,7 +1,29 @@
 #include "stdafx.h"
+#include "structure.h"
 #include "FrmMain.h"
 
 wxBEGIN_EVENT_TABLE(FrmMain, wxFrame)
+
+/*
+EVT_CHECKLISTBOX(ID_LISTGROUP, listGroup_ItemCheck)
+EVT_BUTTON(ID_BUTTONGROUPADD, buttonGroupAdd_Click)
+EVT_BUTTON(ID_BUTTONGROUPRENAME, buttonGroupRename_Click)
+EVT_BUTTON(ID_BUTTONGROUPDEL, buttonGroupDel_Click)
+
+EVT_CHECKLISTBOX(ID_LISTWORK, listWork_ItemCheck)
+EVT_BUTTON(ID_BUTTONWORKADD, buttonWorkAdd_Click)
+EVT_BUTTON(ID_BUTTONWORKEDIT, buttonWorkEdit_Click)
+EVT_BUTTON(ID_BUTTONWORKINFO, buttonWorkInfo_Click)
+EVT_BUTTON(ID_BUTTONWORKDEL, buttonWorkDel_Click)
+
+EVT_LISTBOX(ID_LISTMEMBER, listMember_SelectedIndexChanged)
+EVT_BUTTON(ID_BUTTONMEMBERADD, buttonMemberAdd_Click)
+EVT_BUTTON(ID_BUTTONMEMBERDEL, buttonMemberDel_Click)
+
+EVT_BUTTON(ID_BUTTONMEMBERAPPLY, buttonMemberApply_Click)
+EVT_CHECKLISTBOX(ID_LISTMEMBERGROUP, listMemberGroup_ItemCheck)
+EVT_CHECKLISTBOX(ID_LISTMEMBERWORK, listMemberWork_ItemCheck)
+*/
 
 wxEND_EVENT_TABLE()
 
@@ -14,8 +36,6 @@ const int _GUI_GAP = 0;
 const int _GUI_SIZE_X = 780;
 const int _GUI_SIZE_Y = 580;
 #endif
-
-extern lwm_client client;
 
 const size_t status_count = 3;
 wxString status_list[status_count] = {
@@ -39,11 +59,19 @@ FrmMain::FrmMain(const wxString &title)
 		wxSize(232, 254)
 		);
 
-	wxArrayString EmptyList, StatusList(status_count, status_list);
+	wxArrayString EmptyList, GroupList, WorkList, MemberList, StatusList(status_count, status_list);
+
+	for (const std::pair<id_type, group> &p : grpList)
+		GroupList.push_back(p.second.getName());
+	for (const std::pair<id_type, work> &p : workList)
+		WorkList.push_back(p.second.getName());
+	for (const std::pair<id_type, member> &p : memList)
+		MemberList.push_back(p.second.getName());
+
 	listGroup = new wxCheckListBox(groupBox, ID_LISTGROUP,
 		wxPoint(6, _GUI_GAP),
 		wxSize(220, 196),
-		EmptyList
+		GroupList
 		);
 	buttonGroupAdd = new wxButton(groupBox, ID_BUTTONGROUPADD,
 		wxT("Ìí¼Ó"),
@@ -70,7 +98,7 @@ FrmMain::FrmMain(const wxString &title)
 	listWork = new wxCheckListBox(groupBox, ID_LISTWORK,
 		wxPoint(6, _GUI_GAP),
 		wxSize(220, 212),
-		EmptyList
+		WorkList
 		);
 	buttonWorkAdd = new wxButton(groupBox, ID_BUTTONWORKADD,
 		wxT("Ìí¼Ó"),
@@ -112,7 +140,7 @@ FrmMain::FrmMain(const wxString &title)
 	listMember = new wxListBox(groupBox, ID_LISTMEMBER,
 		wxPoint(6, _GUI_GAP + 27),
 		wxSize(206, 448),
-		EmptyList
+		MemberList
 		);
 	buttonMemberAdd = new wxButton(groupBox, ID_BUTTONMEMBERADD,
 		wxT("Ìí¼Ó"),
@@ -175,11 +203,11 @@ FrmMain::FrmMain(const wxString &title)
 	listMemberGroup = new wxCheckListBox(groupBox, ID_LISTMEMBERGROUP,
 		wxPoint(6, _GUI_GAP + 283),
 		wxSize(140, 228),
-		EmptyList
+		GroupList
 		);
 	listMemberWork = new wxCheckListBox(groupBox, ID_LISTMEMBERWORK,
 		wxPoint(152, _GUI_GAP + 283),
 		wxSize(140, 228),
-		EmptyList
+		WorkList
 		);
 }

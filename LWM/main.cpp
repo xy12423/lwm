@@ -59,11 +59,6 @@ bool LWM::Login()
 
 void LWM::OnResponse(lwm_client::response res)
 {
-	switch (res.req.op)
-	{
-		case lwm_client::OP_INFO:
-			break;
-	}
 }
 
 IMPLEMENT_APP(LWM)

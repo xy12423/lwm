@@ -7,6 +7,16 @@ grpListTp grpList;
 memListTp memList;
 workListTp workList;
 
+void read_str(data_view& data, std::wstring& ret)
+{
+	data_size_type str_size;
+	size_t wstr_size = 0;
+	if (!data.read(str_size)) throw(0);
+	const wxWCharBuffer &wstr = wxConvUTF8.cMB2WC(data.data, str_size, &wstr_size);
+	ret.assign(wstr, wstr_size);
+	if (!data.skip(str_size)) throw(0);
+}
+
 void read_list(data_view& data, std::set<id_type>& ret)
 {
 	uint16_t item_count;
@@ -22,10 +32,8 @@ void read_list(data_view& data, std::set<id_type>& ret)
 
 void load_group(id_type id, data_view& data)
 {
-	data_size_type name_size;
-	if (!data.read(name_size)) throw(0);
-	std::wstring name(wxConvUTF8.cMB2WC(data.data));
-	if (!data.skip(name_size)) throw(0);
+	std::wstring name;
+	read_str(data, name);
 
 	group &grp = grpList.try_emplace(id, group(id, std::move(name))).first->second;
 
@@ -34,13 +42,9 @@ void load_group(id_type id, data_view& data)
 
 void load_work(id_type id, data_view& data)
 {
-	data_size_type str_size;
-	if (!data.read(str_size)) throw(0);
-	std::wstring name(wxConvUTF8.cMB2WC(data.data));
-	if (!data.skip(str_size)) throw(0);
-	if (!data.read(str_size)) throw(0);
-	std::wstring info(wxConvUTF8.cMB2WC(data.data));
-	if (!data.skip(str_size)) throw(0);
+	std::wstring name, info;
+	read_str(data, name);
+	read_str(data, info);
 
 	work &wrk = workList.try_emplace(id, work(id, std::move(name), std::move(info))).first->second;
 
@@ -49,22 +53,17 @@ void load_work(id_type id, data_view& data)
 
 void load_member(id_type id, data_view& data)
 {
-	data_size_type str_size;
-	if (!data.read(str_size)) throw(0);
-	std::wstring name(wxConvUTF8.cMB2WC(data.data));
-	if (!data.skip(str_size)) throw(0);
+	std::wstring name;
+	read_str(data, name);
 
 	member &mem = memList.try_emplace(id, member(id, std::move(name), uExtInfo())).first->second;
 
 	read_list(data, mem.groups);
 	read_list(data, mem.works);
 
-	if (!data.read(str_size)) throw(0);
-	std::wstring src(wxConvUTF8.cMB2WC(data.data));
-	if (!data.skip(str_size)) throw(0);
-	if (!data.read(str_size)) throw(0);
-	std::wstring info(wxConvUTF8.cMB2WC(data.data));
-	if (!data.skip(str_size)) throw(0);
+	std::wstring src, info;
+	read_str(data, src);
+	read_str(data, info);
 
 	mem.extInfo.src = std::move(src);
 	mem.extInfo.info = std::move(info);
@@ -81,6 +80,12 @@ void load_list(data_view& data, lwm_client::category_t cat)
 		{
 			case lwm_client::CAT_GROUP:
 				load_group(id, data);
+				break;
+			case lwm_client::CAT_WORK:
+				load_work(id, data);
+				break;
+			case lwm_client::CAT_MEMBER:
+				load_member(id, data);
 				break;
 		}
 	}

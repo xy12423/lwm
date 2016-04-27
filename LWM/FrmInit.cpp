@@ -35,6 +35,6 @@ FrmInit::FrmInit(const wxString &title)
 void FrmInit::SetStage(int _stage)
 {
 	stage = _stage;
-	assert(stage >= 0 && stage < 4);
+	assert(stage >= 0 && stage < 6);
 	label->SetLabelText(StageText[stage]);
 }
