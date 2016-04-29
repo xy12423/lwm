@@ -4,7 +4,6 @@
 
 wxBEGIN_EVENT_TABLE(FrmMain, wxFrame)
 
-/*
 EVT_CHECKLISTBOX(ID_LISTGROUP, listGroup_ItemCheck)
 EVT_BUTTON(ID_BUTTONGROUPADD, buttonGroupAdd_Click)
 EVT_BUTTON(ID_BUTTONGROUPRENAME, buttonGroupRename_Click)
@@ -23,7 +22,6 @@ EVT_BUTTON(ID_BUTTONMEMBERDEL, buttonMemberDel_Click)
 EVT_BUTTON(ID_BUTTONMEMBERAPPLY, buttonMemberApply_Click)
 EVT_CHECKLISTBOX(ID_LISTMEMBERGROUP, listMemberGroup_ItemCheck)
 EVT_CHECKLISTBOX(ID_LISTMEMBERWORK, listMemberWork_ItemCheck)
-*/
 
 wxEND_EVENT_TABLE()
 
@@ -44,6 +42,45 @@ wxString status_list[status_count] = {
 	wxT("不可用")
 };
 
+void FrmMain::RefreshMemberList()
+{
+	wxArrayInt checkedG, checkedW;
+	listGroup->GetCheckedItems(checkedG);
+	listWork->GetCheckedItems(checkedW);
+	std::unordered_set<id_type_l> checkedGID, checkedWID;
+	for (auto itr = checkedG.begin(), itrEnd = checkedG.end(); itr != itrEnd; itr++)
+		checkedGID.insert(GIDMap[*itr]);
+	for (auto itr = checkedW.begin(), itrEnd = checkedW.end(); itr != itrEnd; itr++)
+		checkedWID.insert(WIDMap[*itr]);
+
+	listMember->Clear();
+	UIDMap.clear();
+	for (auto itr = memList.cbegin(), itrEnd = memList.cend(); itr != itrEnd; itr++)
+	{
+		const member &mem = itr->second;
+		bool flag = false;
+		for (id_type_l gID : checkedGID)
+		{
+			if (mem.isInGroup(gID))
+			{
+				flag = true;
+				break;
+			}
+		}
+		if (!flag)
+			continue;
+		for (id_type_l wID : checkedWID)
+		{
+			if (mem.isInWork(wID))
+			{
+				listMember->Append(mem.getName());
+				UIDMap.push_back(mem.getUID());
+				break;
+			}
+		}
+	}
+}
+
 FrmMain::FrmMain(const wxString &title)
 	:wxFrame(NULL, ID_FRAME, title, wxDefaultPosition, wxSize(_GUI_SIZE_X, _GUI_SIZE_Y))
 {
@@ -59,14 +96,18 @@ FrmMain::FrmMain(const wxString &title)
 		wxSize(232, 254)
 		);
 
-	wxArrayString EmptyList, GroupList, WorkList, MemberList, StatusList(status_count, status_list);
+	wxArrayString EmptyList, GroupList, WorkList, StatusList(status_count, status_list);
 
 	for (const std::pair<id_type, group> &p : grpList)
+	{
+		GIDMap.push_back(p.second.getGID());
 		GroupList.push_back(p.second.getName());
+	}
 	for (const std::pair<id_type, work> &p : workList)
+	{
+		WIDMap.push_back(p.second.getWID());
 		WorkList.push_back(p.second.getName());
-	for (const std::pair<id_type, member> &p : memList)
-		MemberList.push_back(p.second.getName());
+	}
 
 	listGroup = new wxCheckListBox(groupBox, ID_LISTGROUP,
 		wxPoint(6, _GUI_GAP),
@@ -140,7 +181,7 @@ FrmMain::FrmMain(const wxString &title)
 	listMember = new wxListBox(groupBox, ID_LISTMEMBER,
 		wxPoint(6, _GUI_GAP + 27),
 		wxSize(206, 448),
-		MemberList
+		EmptyList
 		);
 	buttonMemberAdd = new wxButton(groupBox, ID_BUTTONMEMBERADD,
 		wxT("添加"),
@@ -165,7 +206,7 @@ FrmMain::FrmMain(const wxString &title)
 		wxSize(26, 21)
 		);
 	textName = new wxTextCtrl(groupBox, ID_TEXTNAME,
-		wxT(""),
+		wxEmptyString,
 		wxPoint(38, _GUI_GAP),
 		wxSize(189, 21)
 		);
@@ -180,7 +221,7 @@ FrmMain::FrmMain(const wxString &title)
 		wxSize(36, 21)
 		);
 	textSource = new wxTextCtrl(groupBox, ID_TEXTSOURCE,
-		wxT(""),
+		wxEmptyString,
 		wxPoint(48, _GUI_GAP + 27),
 		wxSize(244, 21)
 		);
@@ -190,7 +231,7 @@ FrmMain::FrmMain(const wxString &title)
 		wxSize(60, 21)
 		);
 	textInfo = new wxTextCtrl(groupBox, ID_TEXTINFO,
-		wxT(""),
+		wxEmptyString,
 		wxPoint(6, _GUI_GAP + 81),
 		wxSize(286, 153),
 		wxTE_MULTILINE
@@ -210,4 +251,108 @@ FrmMain::FrmMain(const wxString &title)
 		wxSize(140, 228),
 		WorkList
 		);
+
+	for (unsigned int i = 0; i < GroupList.size(); i++)
+		listGroup->Check(i);
+	for (unsigned int i = 0; i < WorkList.size(); i++)
+		listWork->Check(i);
+	RefreshMemberList();
+}
+
+void FrmMain::listGroup_ItemCheck(wxCommandEvent& event)
+{
+	RefreshMemberList();
+}
+
+void FrmMain::buttonGroupAdd_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::buttonGroupRename_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::buttonGroupDel_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::listWork_ItemCheck(wxCommandEvent& event)
+{
+	RefreshMemberList();
+}
+
+void FrmMain::buttonWorkAdd_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::buttonWorkEdit_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::buttonWorkInfo_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::buttonWorkDel_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::listMember_SelectedIndexChanged(wxCommandEvent& event)
+{
+	int selection = listMember->GetSelection();
+	if (selection != -1)
+	{
+		const member &mem = memList.at(UIDMap[selection]);
+		const uExtInfo &ext = mem.getExtInfo();
+		textName->SetValue(mem.getName());
+		textSource->SetValue(ext.src);
+		textInfo->SetValue(ext.info);
+
+		for (unsigned int i = 0; i < GIDMap.size(); i++)
+		{
+			if (mem.isInGroup(GIDMap[i]))
+				listMemberGroup->Check(i, true);
+			else
+				listMemberGroup->Check(i, false);
+		}
+		for (unsigned int i = 0; i < WIDMap.size(); i++)
+		{
+			if (mem.isInWork(WIDMap[i]))
+				listMemberWork->Check(i, true);
+			else
+				listMemberWork->Check(i, false);
+		}
+	}
+}
+
+void FrmMain::buttonMemberAdd_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::buttonMemberDel_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::buttonMemberApply_Click(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::listMemberGroup_ItemCheck(wxCommandEvent& event)
+{
+
+}
+
+void FrmMain::listMemberWork_ItemCheck(wxCommandEvent& event)
+{
+
 }

@@ -7,6 +7,103 @@ grpListTp grpList;
 memListTp memList;
 workListTp workList;
 
+void processEscChar(std::wstring &str)
+{
+	std::wstring::iterator itr = str.begin();
+	for (; itr != str.end(); itr++)
+	{
+		if (*itr == '\\')
+		{
+			char replace = '\0';
+			itr = str.erase(itr);
+			if (itr == str.end())
+				break;
+			switch (*itr)
+			{
+				case 'a':
+					replace = '\a';
+					break;
+				case 'b':
+					replace = '\b';
+					break;
+				case 'f':
+					replace = '\f';
+					break;
+				case 'n':
+					replace = '\n';
+					break;
+				case 'r':
+					replace = '\r';
+					break;
+				case 't':
+					replace = '\t';
+					break;
+				case 'v':
+					replace = '\v';
+					break;
+				case '\\':
+					replace = '\\';
+					break;
+				case '\'':
+					replace = '\'';
+					break;
+				case '\"':
+					replace = '\"';
+					break;
+				case 'x':
+				{
+					std::stringstream tmp;
+					tmp << std::hex;
+					for (int i = 0; i < 2 && itr != str.end(); i++)
+					{
+						itr = str.erase(itr);
+						if (!isxdigit(*itr))
+							break;
+						tmp << *itr;
+					}
+					itr = str.insert(itr, '\0');
+					int tmpn = 0;
+					tmp >> tmpn;
+					replace = static_cast<char>(tmpn);
+					break;
+				}
+				default:
+				{
+					if (*itr > '7' || *itr < '0')
+						return;
+					std::stringstream tmp;
+					tmp << std::oct;
+					for (int i = 0; i < 3 && itr != str.end(); i++)
+					{
+						if (*itr > '7' || *itr < '0')
+							break;
+						tmp << *itr;
+						itr = str.erase(itr);
+					}
+					itr = str.insert(itr, '\0');
+					int tmpn = 0;
+					tmp >> tmpn;
+					replace = static_cast<char>(tmpn);
+				}
+			}
+
+			*itr = replace;
+		}
+	}
+}
+
+std::wstring toSingleLine(const std::wstring &str)
+{
+	std::wstring ret = str;
+	size_t pos = ret.find('\n');
+	while (pos != std::wstring::npos)
+	{
+		ret.replace(pos, 1, L"\\n");
+		pos = ret.find('\n', pos + 2);
+	}
+	return ret;
+}
+
 void read_str(data_view& data, std::wstring& ret)
 {
 	data_size_type str_size;
@@ -15,6 +112,19 @@ void read_str(data_view& data, std::wstring& ret)
 	const wxWCharBuffer &wstr = wxConvUTF8.cMB2WC(data.data, str_size, &wstr_size);
 	ret.assign(wstr, wstr_size);
 	if (!data.skip(str_size)) throw(0);
+}
+
+void read_list(data_view& data, std::set<id_type_l>& ret)
+{
+	uint16_t item_count;
+	id_type id;
+	if (!data.read(item_count)) throw(0);
+	ret.clear();
+	for (int i = 0; i < item_count; i++)
+	{
+		if (!data.read(id)) throw(0);
+		ret.emplace(id);
+	}
 }
 
 void read_list(data_view& data, std::set<id_type>& ret)
@@ -64,6 +174,7 @@ void load_member(id_type id, data_view& data)
 	std::wstring src, info;
 	read_str(data, src);
 	read_str(data, info);
+	processEscChar(info);
 
 	mem.extInfo.src = std::move(src);
 	mem.extInfo.info = std::move(info);
@@ -93,9 +204,9 @@ void load_list(data_view& data, lwm_client::category_t cat)
 
 lwm_client::err_t list(lwm_client::category_t cat)
 {
-	std::promise<lwm_client::err_t> list_promise;
-	std::future<lwm_client::err_t> list_future = list_promise.get_future();
-	client.set_callback([&list_promise, cat](lwm_client::response response) {
+	std::shared_ptr<std::promise<lwm_client::err_t>> list_promise = std::make_shared<std::promise<lwm_client::err_t>>();
+	std::future<lwm_client::err_t> list_future = list_promise->get_future();
+	client.set_callback([list_promise, cat](lwm_client::response response) {
 		if (response.err == lwm_client::ERR_SUCCESS)
 		{
 			try
@@ -104,7 +215,7 @@ lwm_client::err_t list(lwm_client::category_t cat)
 			}
 			catch (int) { response.err = lwm_client::ERR_FAILURE; }
 		}
-		list_promise.set_value(response.err);
+		list_promise->set_value(response.err);
 	});
 	client.list(cat);
 
@@ -113,6 +224,8 @@ lwm_client::err_t list(lwm_client::category_t cat)
 
 void group::submit()
 {
+	if (gID < 0)
+		return;
 	std::string data;
 	std::string name_utf8(wxConvUTF8.cWC2MB(name.c_str()));
 	uint32_t name_len = boost::endian::native_to_little(static_cast<uint32_t>(name_utf8.size()));
@@ -124,7 +237,7 @@ void group::submit()
 	for (id_type ID : members)
 		data.append(reinterpret_cast<char*>(&ID), sizeof(id_type));
 
-	client.modify(lwm_client::CAT_GROUP, gID, data);
+	client.modify(lwm_client::CAT_GROUP, static_cast<id_type>(gID), data);
 }
 
 void member::submit()
@@ -147,19 +260,33 @@ void member::submit()
 
 	uint16_t group_count = boost::endian::native_to_little(static_cast<uint16_t>(groups.size()));
 	data.append(reinterpret_cast<char*>(&group_count), sizeof(uint16_t));
-	for (id_type ID : groups)
-		data.append(reinterpret_cast<char*>(&ID), sizeof(id_type));
+	for (id_type_l ID : groups)
+	{
+		if (ID >= 0)
+		{
+			id_type ID_send = static_cast<id_type>(ID);
+			data.append(reinterpret_cast<char*>(&ID_send), sizeof(id_type));
+		}
+	}
 
 	uint16_t work_count = boost::endian::native_to_little(static_cast<uint16_t>(works.size()));
 	data.append(reinterpret_cast<char*>(&work_count), sizeof(uint16_t));
-	for (id_type ID : works)
-		data.append(reinterpret_cast<char*>(&ID), sizeof(id_type));
+	for (id_type_l ID : works)
+	{
+		if (ID >= 0)
+		{
+			id_type ID_send = static_cast<id_type>(ID);
+			data.append(reinterpret_cast<char*>(&ID_send), sizeof(id_type));
+		}
+	}
 
 	client.modify(lwm_client::CAT_MEMBER, uID, data);
 }
 
 void work::submit()
 {
+	if (wID < 0)
+		return;
 	std::string data;
 	std::string str_utf8(wxConvUTF8.cWC2MB(name.c_str()));
 	uint32_t str_len = boost::endian::native_to_little(static_cast<uint32_t>(str_utf8.size()));
@@ -176,5 +303,5 @@ void work::submit()
 	for (id_type ID : members)
 		data.append(reinterpret_cast<char*>(&ID), sizeof(id_type));
 
-	client.modify(lwm_client::CAT_WORK, wID, data);
+	client.modify(lwm_client::CAT_WORK, static_cast<id_type>(wID), data);
 }

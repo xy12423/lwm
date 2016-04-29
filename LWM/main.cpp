@@ -43,7 +43,8 @@ bool LWM::ConnectTo(const std::string &addr, port_type port)
 bool LWM::Login()
 {
 	FrmLogin login(wxT("登录"));
-	login.ShowModal();
+	if (login.ShowModal() != wxID_OK)
+		return false;
 
 	std::string name(wxConvUTF8.cWC2MB(login.GetName().c_str()));
 	std::string pass(wxConvUTF8.cWC2MB(login.GetPass().c_str()));
@@ -133,6 +134,23 @@ bool LWM::OnInit()
 			throw(1);
 		}
 		init.NextStage();
+
+		group &default_grp = grpList.emplace(default_id, group(default_id, wxT("[无组]"))).first->second;
+		work &default_wrk = workList.emplace(default_id, work(default_id, wxT("[无工作]"), wxT(""))).first->second;
+		for (memListTp::iterator itr = memList.begin(), itrEnd = memList.end(); itr != itrEnd; itr++)
+		{
+			member &mem = itr->second;
+			if (mem.getGroupCount() == 0)
+			{
+				default_grp.addMember(mem.getUID());
+				mem.addGroup(default_id);
+			}
+			if (mem.getWorkCount() == 0)
+			{
+				default_wrk.addMember(mem.getUID());
+				mem.addWork(default_id);
+			}
+		}
 
 		form = new FrmMain(wxT("LWM"));
 		form->Show();

@@ -59,7 +59,10 @@ private:
 	void listMemberGroup_ItemCheck(wxCommandEvent& event);
 	void listMemberWork_ItemCheck(wxCommandEvent& event);
 
-	std::vector<id_type> GIDMap, WIDMap, UIDMap;
+	void RefreshMemberList();
+
+	std::vector<id_type_l> GIDMap, WIDMap;
+	std::vector<id_type> UIDMap;
 
 	wxDECLARE_EVENT_TABLE();
 };
