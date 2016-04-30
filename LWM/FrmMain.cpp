@@ -473,7 +473,16 @@ void FrmMain::buttonMemberDel_Click(wxCommandEvent& event)
 
 void FrmMain::buttonMemberApply_Click(wxCommandEvent& event)
 {
-
+	int uIndex = listMember->GetSelection();
+	if (uIndex >= 0)
+	{
+		id_type uID = UIDMap[uIndex];
+		member &mem = memList.at(uID);
+		listMember->SetString(uIndex, textName->GetValue());
+		mem.editName(textName->GetValue().ToStdWstring());
+		mem.editInfo(uExtInfo(textSource->GetValue().ToStdWstring(), textInfo->GetValue().ToStdWstring(), uExtInfo::ST_AVAILABLE));
+		mem.submit();
+	}
 }
 
 void FrmMain::listMemberGroup_ItemCheck(wxCommandEvent& event)

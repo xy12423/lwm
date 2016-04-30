@@ -82,8 +82,7 @@ public:
 	void addGroup(id_type_l gID, bool syn = true) { groups.insert(gID); if (gID >= 0 && syn) submit(); };
 	void delGroup(id_type_l gID, bool syn = true) { groups.erase(gID); if (gID >= 0 && syn) submit(); };
 	void addWork(id_type_l wID, bool syn = true) { works.insert(wID); if (wID >= 0 && syn) submit(); };
-	void delWork(id_type_l wID, bool syn = true) { works.erase(wID); if (wID >= 0 && syn) submit();
-	};
+	void delWork(id_type_l wID, bool syn = true) { works.erase(wID); if (wID >= 0 && syn) submit(); };
 
 	void submit();
 
