@@ -8,7 +8,8 @@ class FrmInit : public wxFrame
 public:
 	FrmInit(const wxString& title);
 
-	void SetStage(int stage);
+	void SetStage(int _stage);
+	void NextStage() { SetStage(stage + 1); };
 private:
 	enum itemID {
 		ID_FRAME = 300, ID_ANY,
@@ -18,6 +19,8 @@ private:
 	wxPanel *panel;
 
 	wxStaticText *label;
+
+	int stage;
 };
 
 #endif

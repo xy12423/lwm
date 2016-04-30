@@ -24,7 +24,9 @@ struct data_view
 		return true;
 	}
 	inline bool read(char* dst, size_t _size) { if (size < _size) return false; memcpy(dst, data, _size); data += _size; size -= _size;  return true; }
-	bool skip(size_t count) { if (size < count) return false; data += count; size -= count; return true; }
+	inline bool read(std::string& dst, size_t _size) { if (size < _size) return false; dst.append(data, _size); data += _size; size -= _size;  return true; }
+	inline bool check(size_t count) { return size >= count; }
+	inline bool skip(size_t count) { if (size < count) return false; data += count; size -= count; return true; }
 
 	const char* data;
 	size_t size;
