@@ -16,6 +16,7 @@ EVT_BUTTON(ID_BUTTONWORKEDIT, buttonWorkEdit_Click)
 EVT_BUTTON(ID_BUTTONWORKINFO, buttonWorkInfo_Click)
 EVT_BUTTON(ID_BUTTONWORKDEL, buttonWorkDel_Click)
 
+EVT_CHOICE(ID_CHOICESTATUSFILTER, choiceStatusFilter_SelectedIndexChanged)
 EVT_LISTBOX(ID_LISTMEMBER, listMember_SelectedIndexChanged)
 EVT_BUTTON(ID_BUTTONMEMBERADD, buttonMemberAdd_Click)
 EVT_BUTTON(ID_BUTTONMEMBERDEL, buttonMemberDel_Click)
@@ -58,6 +59,7 @@ void FrmMain::RefreshMemberList()
 
 	listMember->Clear();
 	UIDMap.clear();
+	int current_status_filter = choiceStatusFilter->GetSelection() - 1;
 	for (auto itr = memList.cbegin(), itrEnd = memList.cend(); itr != itrEnd; itr++)
 	{
 		const member &mem = itr->second;
@@ -76,10 +78,16 @@ void FrmMain::RefreshMemberList()
 		{
 			if (mem.isInWork(wID))
 			{
-				listMember->Append(mem.getName());
-				UIDMap.push_back(mem.getUID());
+				flag = false;
 				break;
 			}
+		}
+		if (flag)
+			continue;
+		if (current_status_filter < 0 || mem.getExtInfo().status == current_status_filter)
+		{
+			listMember->Append(mem.getName());
+			UIDMap.push_back(mem.getUID());
 		}
 	}
 }
@@ -99,7 +107,10 @@ FrmMain::FrmMain(const wxString &title)
 		wxSize(232, 254)
 		);
 
-	wxArrayString EmptyList, GroupList, WorkList, StatusList(status_count, status_list);
+	wxArrayString EmptyList, GroupList, WorkList, StatusList;
+	StatusList.push_back(wxT("所有"));
+	for (const wxString& status_str : status_list)
+		StatusList.push_back(status_str);
 
 	for (const std::pair<id_type, group> &p : grpList)
 	{
@@ -197,6 +208,7 @@ FrmMain::FrmMain(const wxString &title)
 		wxSize(100, 30)
 		);
 
+	StatusList.erase(StatusList.begin());
 	groupBox = new wxStaticBox(panel, ID_ANY,
 		wxT("成员信息"),
 		wxPoint(474, 12),
@@ -259,6 +271,7 @@ FrmMain::FrmMain(const wxString &title)
 		listGroup->Check(i);
 	for (unsigned int i = 0; i < WorkList.size(); i++)
 		listWork->Check(i);
+	choiceStatusFilter->SetSelection(0);
 	RefreshMemberList();
 }
 
@@ -437,6 +450,11 @@ void FrmMain::buttonWorkDel_Click(wxCommandEvent& event)
 	}
 }
 
+void FrmMain::choiceStatusFilter_SelectedIndexChanged(wxCommandEvent& event)
+{
+	RefreshMemberList();
+}
+
 void FrmMain::listMember_SelectedIndexChanged(wxCommandEvent& event)
 {
 	int uIndex = listMember->GetSelection();
@@ -447,6 +465,7 @@ void FrmMain::listMember_SelectedIndexChanged(wxCommandEvent& event)
 		textName->SetValue(mem.getName());
 		textSource->SetValue(ext.src);
 		textInfo->SetValue(ext.info);
+		choiceStatus->SetSelection(ext.status);
 
 		for (unsigned int i = 0; i < GIDMap.size(); i++)
 		{
@@ -532,13 +551,13 @@ void FrmMain::buttonMemberDel_Click(wxCommandEvent& event)
 void FrmMain::buttonMemberApply_Click(wxCommandEvent& event)
 {
 	int uIndex = listMember->GetSelection();
-	if (uIndex >= 0)
+	if (uIndex >= 0 && choiceStatus->GetSelection() >= 0)
 	{
 		id_type uID = UIDMap[uIndex];
 		member &mem = memList.at(uID);
 		listMember->SetString(uIndex, textName->GetValue());
 		mem.editName(textName->GetValue().ToStdWstring());
-		mem.editInfo(uExtInfo(textSource->GetValue().ToStdWstring(), textInfo->GetValue().ToStdWstring(), uExtInfo::ST_AVAILABLE));
+		mem.editInfo(uExtInfo(textSource->GetValue().ToStdWstring(), textInfo->GetValue().ToStdWstring(), static_cast<uExtInfo::status_tp>(choiceStatus->GetSelection())));
 		mem.submit();
 	}
 }

@@ -42,7 +42,9 @@ struct uExtInfo
 	{
 		ST_AVAILABLE,
 		ST_BUSY,
-		ST_UNAVAILABLE
+		ST_UNAVAILABLE,
+
+		ST_COUNT
 	};
 
 	uExtInfo() {}

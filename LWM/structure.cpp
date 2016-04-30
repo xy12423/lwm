@@ -172,12 +172,17 @@ void load_member(id_type id, data_view& data)
 	read_list(data, mem.works);
 
 	std::wstring src, info;
+	char status;
 	read_str(data, src);
 	read_str(data, info);
+	data.read(status);
 	processEscChar(info);
 
 	mem.extInfo.src = std::move(src);
 	mem.extInfo.info = std::move(info);
+	if (status < 0 || status >= uExtInfo::ST_COUNT)
+		throw(0);
+	mem.extInfo.status = static_cast<uExtInfo::status_tp>(status);
 }
 
 void load_list(data_view& data, lwm_client::category_t cat)
@@ -279,7 +284,13 @@ void group::submit()
 		data.append(reinterpret_cast<char*>(&ID), sizeof(id_type));
 	}
 
+	std::shared_ptr<std::promise<lwm_client::err_t>> modify_promise = std::make_shared<std::promise<lwm_client::err_t>>();
+	std::future<lwm_client::err_t> modify_future = modify_promise->get_future();
+	set_callback([modify_promise](lwm_client::response response) {
+		modify_promise->set_value(response.err);
+	});
 	client.modify(lwm_client::CAT_GROUP, static_cast<id_type>(gID), data);
+	modify_future.wait();
 }
 
 void member::submit()
@@ -287,17 +298,6 @@ void member::submit()
 	std::string data;
 	std::string str_utf8(wxConvUTF8.cWC2MB(name.c_str()));
 	data_size_type str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
-	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
-	data.append(str_utf8);
-
-	str_utf8 = wxConvUTF8.cWC2MB(extInfo.src.c_str());
-	str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
-	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
-	data.append(str_utf8);
-
-	str_utf8 = wxConvUTF8.cWC2MB(extInfo.info.c_str());
-	toSingleLine(str_utf8);
-	str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
 	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
 	data.append(str_utf8);
 
@@ -333,7 +333,26 @@ void member::submit()
 	data.append(reinterpret_cast<char*>(&work_count), sizeof(uint16_t));
 	data.append(parent_list);
 
+	str_utf8 = wxConvUTF8.cWC2MB(extInfo.src.c_str());
+	str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
+	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
+	data.append(str_utf8);
+
+	str_utf8 = wxConvUTF8.cWC2MB(extInfo.info.c_str());
+	toSingleLine(str_utf8);
+	str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
+	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
+	data.append(str_utf8);
+
+	data.push_back(extInfo.status);
+
+	std::shared_ptr<std::promise<lwm_client::err_t>> modify_promise = std::make_shared<std::promise<lwm_client::err_t>>();
+	std::future<lwm_client::err_t> modify_future = modify_promise->get_future();
+	set_callback([modify_promise](lwm_client::response response) {
+		modify_promise->set_value(response.err);
+	});
 	client.modify(lwm_client::CAT_MEMBER, uID, data);
+	modify_future.wait();
 }
 
 void work::submit()
@@ -359,5 +378,11 @@ void work::submit()
 		data.append(reinterpret_cast<char*>(&ID), sizeof(id_type));
 	}
 
+	std::shared_ptr<std::promise<lwm_client::err_t>> modify_promise = std::make_shared<std::promise<lwm_client::err_t>>();
+	std::future<lwm_client::err_t> modify_future = modify_promise->get_future();
+	set_callback([modify_promise](lwm_client::response response) {
+		modify_promise->set_value(response.err);
+	});
 	client.modify(lwm_client::CAT_WORK, static_cast<id_type>(wID), data);
+	modify_future.wait();
 }
