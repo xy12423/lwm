@@ -12,16 +12,21 @@ const std::string category_conv[] = {
 	"member"
 };
 
-struct sql_result
+struct sql_result_tp
 {
-	sql_result(MYSQL* _con) { res = mysql_store_result(_con); }
-	sql_result(const sql_result &) = delete;
-	sql_result(sql_result &&_res) :res(_res.res) { _res.res = nullptr; }
-	~sql_result() { if (res != nullptr) mysql_free_result(res); }
+	sql_result_tp(MYSQL* _con) { res = mysql_store_result(_con); }
+	sql_result_tp(const sql_result_tp &) = delete;
+	sql_result_tp(sql_result_tp &&_res) :res(_res.res) { _res.res = nullptr; }
+	~sql_result_tp() { if (res != nullptr) mysql_free_result(res); }
 
 	inline operator bool() { return res != nullptr; }
 	inline bool operator!() { return res == nullptr; }
 	inline operator MYSQL_RES*() { return res; };
+
+	void reset(MYSQL* _con = nullptr) {
+		if (res != nullptr) { mysql_free_result(res); res = nullptr; }
+		if (_con != nullptr) { res = mysql_store_result(_con); }
+	}
 
 	MYSQL_RES* res;
 };
@@ -152,6 +157,11 @@ inline void write_id(std::string& result, const char* id_str)
 	result.append(reinterpret_cast<char*>(&id), sizeof(lwm_server::id_type));
 }
 
+inline void write_id(std::string& result, lwm_server::id_type id)
+{
+	result.append(reinterpret_cast<char*>(&id), sizeof(lwm_server::id_type));
+}
+
 void write_str(std::string& result, const char* str)
 {
 	if (str)
@@ -198,6 +208,39 @@ void write_list(std::string& result, const char* str)
 	else
 	{
 		result.append(reinterpret_cast<char*>(&item_count), sizeof(uint16_t));
+	}
+}
+
+void write_list(std::set<lwm_server::id_type>& result, const char* str)
+{
+	if (str)
+	{
+		std::string item;
+		for (const char *itr = str; *itr != '\0'; itr++)
+		{
+			if (*itr == ';')
+			{
+				lwm_server::id_type id = static_cast<lwm_server::id_type>(std::stoi(item));
+				result.insert(id);
+				item.clear();
+			}
+			else
+				item.push_back(*itr);
+		}
+		if (!item.empty())
+		{
+			lwm_server::id_type id = static_cast<lwm_server::id_type>(std::stoi(item));
+			result.insert(id);
+		}
+	}
+}
+
+void read_list(std::string& result, const std::set<lwm_server::id_type>& src)
+{
+	for (std::set<lwm_server::id_type>::const_iterator itr = src.cbegin(), itrEnd = src.cend(); itr != itrEnd; itr++)
+	{
+		result.append(std::to_string(*itr));
+		result.push_back(';');
 	}
 }
 
@@ -261,72 +304,190 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 					category_str = category_conv[category];
 					dataItr++;
 
+					std::string result;
+
 					switch (operation)
 					{
 						case OP_LIST:
 						{
 							if (mysql_query(sql_conn, ("SELECT * FROM `" + category_str + "`").c_str()) != 0)
 								throw(0);
-							sql_result sql_result(sql_conn);
+							sql_result_tp sql_result(sql_conn);
 							if (!sql_result)
-							{
 								throw(0);
-							}
-							else
-							{
-								MYSQL_ROW row;
-								std::string result;
-								result.push_back(ERR_SUCCESS);
 
-								switch (category)
+							MYSQL_ROW row;
+							result.push_back(ERR_SUCCESS);
+
+							switch (category)
+							{
+								case CAT_GROUP:
 								{
-									case CAT_GROUP:
+									while ((row = mysql_fetch_row(sql_result)) != nullptr)
 									{
-										while ((row = mysql_fetch_row(sql_result)) != nullptr)
-										{
-											write_id(result, row[0]);	//id
-											write_str(result, row[1]);	//name
-											write_list(result, row[2]);	//member
-										}
-										break;
+										write_id(result, row[0]);	//id
+										write_str(result, row[1]);	//name
+										write_list(result, row[2]);	//member
 									}
-									case CAT_WORK:
+									break;
+								}
+								case CAT_WORK:
+								{
+									while ((row = mysql_fetch_row(sql_result)) != nullptr)
 									{
-										while ((row = mysql_fetch_row(sql_result)) != nullptr)
-										{
-											write_id(result, row[0]);	//id
-											write_str(result, row[1]);	//name
-											write_str(result, row[2]);	//info
-											write_list(result, row[3]);	//member
-										}
-										break;
+										write_id(result, row[0]);	//id
+										write_str(result, row[1]);	//name
+										write_str(result, row[2]);	//info
+										write_list(result, row[3]);	//member
 									}
-									case CAT_MEMBER:
+									break;
+								}
+								case CAT_MEMBER:
+								{
+									while ((row = mysql_fetch_row(sql_result)) != nullptr)
 									{
-										while ((row = mysql_fetch_row(sql_result)) != nullptr)
-										{
-											write_id(result, row[0]);	//id
-											write_str(result, row[1]);	//name
-											write_list(result, row[2]);	//group
-											write_list(result, row[3]);	//work
-											write_str(result, row[4]);	//src
-											write_str(result, row[5]);	//info
-										}
-										break;
+										write_id(result, row[0]);	//id
+										write_str(result, row[1]);	//name
+										write_list(result, row[2]);	//group
+										write_list(result, row[3]);	//work
+										write_str(result, row[4]);	//src
+										write_str(result, row[5]);	//info
 									}
-									default:
+									break;
+								}
+								default:
+									throw(0);
+							}
+							break;
+						}
+						case OP_ADD:
+						{
+							std::string new_name(dataItr, dataEnd - dataItr);
+
+							if (mysql_query(sql_conn, ("SELECT * FROM `data` WHERE `name`='" + category_str + '\'').c_str()) != 0)
+								throw(0);
+							sql_result_tp sql_result(sql_conn);
+							if (!sql_result)
+								throw(0);
+
+							MYSQL_ROW row = mysql_fetch_row(sql_result);
+							if (row == nullptr)
+								throw(0);
+							id_type new_id = static_cast<lwm_server::id_type>(std::atoi(row[1]));
+							sql_result.reset();
+
+							if (mysql_query(sql_conn, ("UPDATE `data` SET `count`=" + std::to_string(new_id + 1) + " WHERE `name`='" + category_str + '\'').c_str()) != 0)
+								throw(0);
+
+							if (mysql_query(sql_conn, ("INSERT INTO `" + category_str + "` (`id`, `name`) VALUES (" + std::to_string(new_id) + ",'" + new_name + "')").c_str()) != 0)
+								throw(0);
+
+							result.push_back(ERR_SUCCESS);
+							write_id(result, new_id);
+
+							break;
+						}
+						case OP_DEL:
+						{
+							id_type id;
+							checkErr(sizeof(id_type));
+							memcpy(reinterpret_cast<char*>(&id), dataItr, sizeof(id_type));
+							dataItr += sizeof(id_type);
+
+							if (mysql_query(sql_conn, ("SELECT * FROM `" + category_str + "` WHERE `id`=" + std::to_string(id)).c_str()) != 0)
+								throw(0);
+							sql_result_tp sql_result(sql_conn);
+							if (!sql_result)
+								throw(0);
+							MYSQL_ROW row = mysql_fetch_row(sql_result);
+
+							if (category == CAT_MEMBER)
+							{
+								std::set<id_type> group_list, work_list, member_list;
+								std::string new_member_list;
+								write_list(group_list, row[2]);
+								write_list(work_list, row[3]);
+								sql_result.reset();
+
+								for (id_type gID : group_list)
+								{
+									if (mysql_query(sql_conn, ("SELECT * FROM `group` WHERE `id`=" + std::to_string(gID)).c_str()) != 0)
+										throw(0);
+									sql_result.reset(sql_conn);
+									row = mysql_fetch_row(sql_result);
+
+									member_list.clear();
+									write_list(member_list, row[2]);
+									member_list.erase(id);
+									new_member_list.clear();
+									read_list(new_member_list, member_list);
+
+									sql_result.reset();
+									if (mysql_query(sql_conn, ("UPDATE `group` SET `member`='" + new_member_list + "' WHERE `id`=" + std::to_string(gID)).c_str()) != 0)
 										throw(0);
 								}
 
-								if (mysql_errno(sql_conn) != 0)
-									throw(0);
-								send_data(id, result, msgr_proto::session::priority_sys);
+								for (id_type wID : work_list)
+								{
+									if (mysql_query(sql_conn, ("SELECT * FROM `work` WHERE `id`=" + std::to_string(wID)).c_str()) != 0)
+										throw(0);
+									sql_result.reset(sql_conn);
+									row = mysql_fetch_row(sql_result);
+
+									member_list.clear();
+									write_list(member_list, row[3]);
+									member_list.erase(id);
+									new_member_list.clear();
+									read_list(new_member_list, member_list);
+
+									sql_result.reset();
+									if (mysql_query(sql_conn, ("UPDATE `work` SET `member`='" + new_member_list + "' WHERE `id`=" + std::to_string(wID)).c_str()) != 0)
+										throw(0);
+								}
 							}
+							else
+							{
+								std::set<id_type> member_list, parent_list;
+								std::string new_parent_list;
+								if (category == CAT_GROUP)
+									write_list(member_list, row[2]);
+								else
+									write_list(member_list, row[3]);
+								sql_result.reset();
+
+								for (id_type uID : member_list)
+								{
+									if (mysql_query(sql_conn, ("SELECT * FROM `member` WHERE `id`=" + std::to_string(uID)).c_str()) != 0)
+										throw(0);
+									sql_result.reset(sql_conn);
+									row = mysql_fetch_row(sql_result);
+
+									parent_list.clear();
+									if (category == CAT_GROUP)
+										write_list(parent_list, row[2]);
+									else
+										write_list(parent_list, row[3]);
+									parent_list.erase(id);
+									new_parent_list.clear();
+									read_list(new_parent_list, parent_list);
+
+									sql_result.reset();
+									if (mysql_query(sql_conn, ("UPDATE `member` SET `" + category_str + "`='" + new_parent_list + "' WHERE `id`=" + std::to_string(uID)).c_str()) != 0)
+										throw(0);
+								}
+							}
+
+							if (mysql_query(sql_conn, ("DELETE FROM `" + category_str + "` WHERE `id`=" + std::to_string(id)).c_str()) != 0)
+								throw(0);
+
+							result.push_back(ERR_SUCCESS);
+
 							break;
 						}
 						default:
 							throw(0);
 					}
+					send_data(id, result, msgr_proto::session::priority_sys);
 				}
 				catch (...) { send_data(id, { ERR_FAILURE }, msgr_proto::session::priority_sys); throw; }
 
