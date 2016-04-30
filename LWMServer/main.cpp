@@ -402,6 +402,8 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 										write_list(result, row[3]);	//work
 										write_str(result, row[4]);	//src
 										write_str(result, row[5]);	//info
+										char status = static_cast<char>(std::atoi(row[6]));
+										result.push_back(status);
 									}
 									break;
 								}
@@ -577,17 +579,25 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 								{
 									data_size_type str_size;
 									std::string name, src, info, group, work;
+									char status;
 									if (!new_data.read(str_size)) throw(0);
 									if (!new_data.read(name, str_size)) throw(0);
-									if (!new_data.read(str_size)) throw(0);
-									if (!new_data.read(src, str_size)) throw(0);
-									if (!new_data.read(str_size)) throw(0);
-									if (!new_data.read(info, str_size)) throw(0);
 
 									read_list(group, new_data);
 									read_list(work, new_data);
 
-									if (mysql_query(sql_conn, ("UPDATE `" + category_str + "` SET `name`='" + name + "', `src`='" + src + "', `info`='" + info + "', `group`='" + group + "', `work`='" + work + "' WHERE `id`=" + std::to_string(id)).c_str()) != 0)
+									if (!new_data.read(str_size)) throw(0);
+									if (!new_data.read(src, str_size)) throw(0);
+									if (!new_data.read(str_size)) throw(0);
+									if (!new_data.read(info, str_size)) throw(0);
+									if (!new_data.read(status)) throw(0);
+
+									if (mysql_query(sql_conn, (
+										"UPDATE `" + category_str + "` SET `name`='" + name + 
+										"', `group`='" + group + "', `work`='" + work + 
+										"', `src`='" + src + "', `info`='" + info + "', `status`=" + std::to_string(static_cast<int>(status)) + 
+										" WHERE `id`=" + std::to_string(id)
+										).c_str()) != 0)
 										throw(0);
 
 									break;
