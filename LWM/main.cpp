@@ -15,6 +15,18 @@ asio::io_service main_io_service, misc_io_service;
 std::unique_ptr<msgr_proto::server> srv;
 lwm_client client;
 
+std::function<void(lwm_client::response, std::shared_ptr<lwm_client::lwm_callback>)> FirstCallback;
+void set_callback(lwm_client::lwm_callback &&callback)
+{
+	std::shared_ptr<lwm_client::lwm_callback> _callback = std::make_shared<lwm_client::lwm_callback>(callback);
+	client.set_callback([_callback](lwm_client::response res) {
+		FirstCallback(res, _callback);
+		client.set_callback([](lwm_client::response res) {
+			FirstCallback(res, std::make_shared<lwm_client::lwm_callback>());
+		});
+	});
+}
+
 bool LWM::ConnectTo(const std::string &addr, port_type port)
 {
 	std::shared_ptr<std::promise<int>> connect_promise = std::make_shared<std::promise<int>>();
@@ -58,8 +70,21 @@ bool LWM::Login()
 	return login_future.get() == lwm_client::ERR_SUCCESS;
 }
 
-void LWM::OnResponse(lwm_client::response res)
+void LWM::OnResponse(lwm_client::response res, std::shared_ptr<lwm_client::lwm_callback> callback)
 {
+	if (callback)
+	{
+		try
+		{
+			(*callback)(res);
+		}
+		catch (...) {}
+	}
+	if (res.err == lwm_client::ERR_DISCONNECTED)
+	{
+		wxMessageBox(wxT("与服务器的连接已断开"), "Error", wxOK | wxICON_ERROR);
+		form->Close();
+	}
 }
 
 IMPLEMENT_APP(LWM)
@@ -114,6 +139,7 @@ bool LWM::OnInit()
 			wxMessageBox(wxT("登录失败"), "Error", wxOK | wxICON_ERROR);
 			throw(1);
 		}
+		FirstCallback = [this](lwm_client::response res, std::shared_ptr<lwm_client::lwm_callback> callback) { OnResponse(res, callback); };
 		init.NextStage();
 
 		if (list(lwm_client::CAT_GROUP) != lwm_client::ERR_SUCCESS)

@@ -2,6 +2,7 @@
 #include "structure.h"
 
 extern lwm_client client;
+void set_callback(lwm_client::lwm_callback &&callback);
 
 grpListTp grpList;
 memListTp memList;
@@ -205,7 +206,7 @@ lwm_client::err_t list(lwm_client::category_t cat)
 {
 	std::shared_ptr<std::promise<lwm_client::err_t>> list_promise = std::make_shared<std::promise<lwm_client::err_t>>();
 	std::future<lwm_client::err_t> list_future = list_promise->get_future();
-	client.set_callback([list_promise, cat](lwm_client::response response) {
+	set_callback([list_promise, cat](lwm_client::response response) {
 		if (response.err == lwm_client::ERR_SUCCESS)
 		{
 			try
@@ -225,7 +226,7 @@ lwm_client::err_t add(lwm_client::category_t cat, const std::wstring& name, id_t
 {
 	std::shared_ptr<std::promise<int>> add_promise = std::make_shared<std::promise<int>>();
 	std::future<int> add_future = add_promise->get_future();
-	client.set_callback([add_promise](lwm_client::response response) {
+	set_callback([add_promise](lwm_client::response response) {
 		if (response.err == lwm_client::ERR_SUCCESS)
 		{
 			id_type id;
@@ -252,7 +253,7 @@ lwm_client::err_t del(lwm_client::category_t cat, id_type id)
 {
 	std::shared_ptr<std::promise<lwm_client::err_t>> del_promise = std::make_shared<std::promise<lwm_client::err_t>>();
 	std::future<lwm_client::err_t> del_future = del_promise->get_future();
-	client.set_callback([del_promise, cat](lwm_client::response response) {
+	set_callback([del_promise, cat](lwm_client::response response) {
 		del_promise->set_value(response.err);
 	});
 	client.del(cat, id);
