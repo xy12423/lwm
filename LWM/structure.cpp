@@ -92,16 +92,14 @@ void processEscChar(std::wstring &str)
 	}
 }
 
-std::wstring toSingleLine(const std::wstring &str)
+void toSingleLine(std::string &str)
 {
-	std::wstring ret = str;
-	size_t pos = ret.find('\n');
-	while (pos != std::wstring::npos)
+	size_t pos = str.find('\n');
+	while (pos != std::string::npos)
 	{
-		ret.replace(pos, 1, L"\\n");
-		pos = ret.find('\n', pos + 2);
+		str.replace(pos, 1, "\\n");
+		pos = str.find('\n', pos + 2);
 	}
-	return ret;
 }
 
 void read_str(data_view& data, std::wstring& ret)
@@ -222,6 +220,45 @@ lwm_client::err_t list(lwm_client::category_t cat)
 	return list_future.get();
 }
 
+lwm_client::err_t add(lwm_client::category_t cat, const std::wstring& name, id_type& ret)
+{
+	std::shared_ptr<std::promise<int>> add_promise = std::make_shared<std::promise<int>>();
+	std::future<int> add_future = add_promise->get_future();
+	client.set_callback([add_promise](lwm_client::response response) {
+		if (response.err == lwm_client::ERR_SUCCESS)
+		{
+			id_type id;
+			response.data.read(id);
+			add_promise->set_value(id);
+		}
+		else
+			add_promise->set_value(-static_cast<int>(response.err));
+	});
+	std::string name_utf8(wxConvUTF8.cWC2MB(name.c_str()));
+	client.add(cat, name_utf8);
+
+	int res = add_future.get();
+	if (res >= 0)
+	{
+		ret = static_cast<id_type>(res);
+		return lwm_client::ERR_SUCCESS;
+	}
+	else
+		return -res;
+}
+
+lwm_client::err_t del(lwm_client::category_t cat, id_type id)
+{
+	std::shared_ptr<std::promise<lwm_client::err_t>> del_promise = std::make_shared<std::promise<lwm_client::err_t>>();
+	std::future<lwm_client::err_t> del_future = del_promise->get_future();
+	client.set_callback([del_promise, cat](lwm_client::response response) {
+		del_promise->set_value(response.err);
+	});
+	client.del(cat, id);
+
+	return del_future.get();
+}
+
 void group::submit()
 {
 	if (gID < 0)
@@ -254,6 +291,7 @@ void member::submit()
 	data.append(str_utf8);
 
 	str_utf8 = wxConvUTF8.cWC2MB(extInfo.info.c_str());
+	toSingleLine(str_utf8);
 	str_len = boost::endian::native_to_little(static_cast<uint32_t>(str_utf8.size()));
 	data.append(reinterpret_cast<char*>(&str_len), sizeof(uint32_t));
 	data.append(str_utf8);

@@ -42,6 +42,8 @@ wxString status_list[status_count] = {
 	wxT("不可用")
 };
 
+const std::wstring empty_wstring;
+
 void FrmMain::RefreshMemberList()
 {
 	wxArrayInt checkedG, checkedW;
@@ -163,7 +165,7 @@ FrmMain::FrmMain(const wxString &title)
 		);
 
 	groupBox = new wxStaticBox(panel, ID_ANY,
-		wxT("人员"),
+		wxT("成员"),
 		wxPoint(250, 12),
 		wxSize(218, 537)
 		);
@@ -195,7 +197,7 @@ FrmMain::FrmMain(const wxString &title)
 		);
 
 	groupBox = new wxStaticBox(panel, ID_ANY,
-		wxT("人员信息"),
+		wxT("成员信息"),
 		wxPoint(474, 12),
 		wxSize(298, 537)
 		);
@@ -266,7 +268,19 @@ void FrmMain::listGroup_ItemCheck(wxCommandEvent& event)
 
 void FrmMain::buttonGroupAdd_Click(wxCommandEvent& event)
 {
-
+	wxTextEntryDialog inputDlg(this, wxT("请输入组名"), wxT("输入组名"));
+	inputDlg.ShowModal();
+	wxString name = inputDlg.GetValue();
+	if (name != wxEmptyString)
+	{
+		id_type new_id;
+		if (add(lwm_client::CAT_GROUP, name.ToStdWstring(), new_id) == lwm_client::ERR_SUCCESS)
+		{
+			grpList.emplace(new_id, group(new_id, name.ToStdWstring()));
+			listGroup->Append(name);
+			GIDMap.push_back(new_id);
+		}
+	}
 }
 
 void FrmMain::buttonGroupRename_Click(wxCommandEvent& event)
@@ -276,7 +290,32 @@ void FrmMain::buttonGroupRename_Click(wxCommandEvent& event)
 
 void FrmMain::buttonGroupDel_Click(wxCommandEvent& event)
 {
+	int gIndex = listGroup->GetSelection();
+	if (gIndex < 0)
+		return;
+	id_type_l gID = GIDMap[gIndex];
+	if (gID >= 0)
+	{
+		int confirm = wxMessageBox(wxT("确认删除?"), wxT("确认"), wxYES_NO | wxNO_DEFAULT);
+		if (confirm == wxYES && del(lwm_client::CAT_GROUP, static_cast<id_type>(gID)) == lwm_client::ERR_SUCCESS)
+		{
+			group &grp = grpList.at(gID);
 
+			std::list<id_type> depMemList;
+			grp.getMember(depMemList);
+			for (size_t uID : depMemList)
+				memList.at(uID).delGroup(gID);
+
+			grpList.erase(gID);
+			std::vector<id_type_l>::iterator itr = GIDMap.begin();
+			itr += gIndex;
+			GIDMap.erase(itr);
+			listGroup->Delete(gIndex);
+			listMemberGroup->Delete(gIndex);
+
+			RefreshMemberList();
+		}
+	}
 }
 
 void FrmMain::listWork_ItemCheck(wxCommandEvent& event)
@@ -286,7 +325,19 @@ void FrmMain::listWork_ItemCheck(wxCommandEvent& event)
 
 void FrmMain::buttonWorkAdd_Click(wxCommandEvent& event)
 {
-
+	wxTextEntryDialog inputDlg(this, wxT("请输入工作名"), wxT("输入工作名"));
+	inputDlg.ShowModal();
+	wxString name = inputDlg.GetValue();
+	if (name != wxEmptyString)
+	{
+		id_type new_id;
+		if (add(lwm_client::CAT_WORK, name.ToStdWstring(), new_id) == lwm_client::ERR_SUCCESS)
+		{
+			workList.emplace(new_id, work(new_id, name.ToStdWstring(), empty_wstring));
+			listWork->Append(name);
+			WIDMap.push_back(new_id);
+		}
+	}
 }
 
 void FrmMain::buttonWorkEdit_Click(wxCommandEvent& event)
@@ -301,7 +352,32 @@ void FrmMain::buttonWorkInfo_Click(wxCommandEvent& event)
 
 void FrmMain::buttonWorkDel_Click(wxCommandEvent& event)
 {
+	int wIndex = listWork->GetSelection();
+	if (wIndex < 0)
+		return;
+	id_type_l wID = WIDMap[wIndex];
+	if (wID >= 0)
+	{
+		int confirm = wxMessageBox(wxT("确认删除?"), wxT("确认"), wxYES_NO | wxNO_DEFAULT);
+		if (confirm == wxYES && del(lwm_client::CAT_WORK, static_cast<id_type>(wID)) == lwm_client::ERR_SUCCESS)
+		{
+			work &wrk = workList.at(wID);
 
+			std::list<id_type> depMemList;
+			wrk.getMember(depMemList);
+			for (size_t uID : depMemList)
+				memList.at(uID).delWork(wID);
+
+			workList.erase(wID);
+			std::vector<id_type_l>::iterator itr = WIDMap.begin();
+			itr += wIndex;
+			WIDMap.erase(itr);
+			listWork->Delete(wIndex);
+			listMemberWork->Delete(wIndex);
+
+			RefreshMemberList();
+		}
+	}
 }
 
 void FrmMain::listMember_SelectedIndexChanged(wxCommandEvent& event)
@@ -334,12 +410,57 @@ void FrmMain::listMember_SelectedIndexChanged(wxCommandEvent& event)
 
 void FrmMain::buttonMemberAdd_Click(wxCommandEvent& event)
 {
+	wxTextEntryDialog inputDlg(this, wxT("请输入成员名"), wxT("输入成员名"));
+	inputDlg.ShowModal();
+	wxString name = inputDlg.GetValue();
+	if (name != wxEmptyString)
+	{
+		id_type new_id;
+		if (add(lwm_client::CAT_MEMBER, name.ToStdWstring(), new_id) == lwm_client::ERR_SUCCESS)
+		{
+			group &default_grp = grpList.at(default_id);
+			work &default_wrk = workList.at(default_id);
+			member &new_mem = memList.emplace(new_id, member(new_id, name.ToStdWstring(), uExtInfo())).first->second;
+			default_grp.addMember(new_id);
+			default_wrk.addMember(new_id);
+			new_mem.addGroup(default_id);
+			new_mem.addWork(default_id);
 
+			RefreshMemberList();
+		}
+	}
 }
 
 void FrmMain::buttonMemberDel_Click(wxCommandEvent& event)
 {
+	int uIndex = listMember->GetSelection();
+	if (uIndex < 0)
+		return;
+	id_type uID = UIDMap[uIndex];
+	if (uID >= 0)
+	{
+		int confirm = wxMessageBox(wxT("确认删除?"), wxT("确认"), wxYES_NO | wxNO_DEFAULT);
+		if (confirm == wxYES && del(lwm_client::CAT_MEMBER, uID) == lwm_client::ERR_SUCCESS)
+		{
+			member &mem = memList.at(uID);
 
+			std::list<id_type_l> depList;
+			mem.getGroup(depList);
+			for (size_t gID : depList)
+				grpList.at(gID).delMember(uID);
+			mem.getWork(depList);
+			for (size_t wID : depList)
+				workList.at(wID).delMember(uID);
+
+			memList.erase(uID);
+			std::vector<id_type>::iterator itr = UIDMap.begin();
+			itr += uIndex;
+			UIDMap.erase(itr);
+			listMember->Delete(uIndex);
+
+			RefreshMemberList();
+		}
+	}
 }
 
 void FrmMain::buttonMemberApply_Click(wxCommandEvent& event)

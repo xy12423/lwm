@@ -61,6 +61,8 @@ class member
 public:
 	member(id_type _uID, const std::wstring &_name, const uExtInfo &_extInfo)
 		:uID(_uID), name(_name), extInfo(_extInfo) {}
+	member(id_type _uID, const std::wstring &_name, uExtInfo &&_extInfo)
+		:uID(_uID), name(_name), extInfo(std::move(_extInfo)) {}
 	member(id_type _uID, std::wstring &&_name, uExtInfo &&_extInfo)
 		:uID(_uID), name(std::move(_name)), extInfo(std::move(_extInfo)) {}
 	id_type getUID() const { return uID; };
@@ -132,6 +134,8 @@ void load_group(id_type id, data_view& data);
 void load_work(id_type id, data_view& data);
 void load_member(id_type id, data_view& data);
 lwm_client::err_t list(lwm_client::category_t cat);
+lwm_client::err_t add(lwm_client::category_t cat, const std::wstring& name, id_type& ret);
+lwm_client::err_t del(lwm_client::category_t cat, id_type id);
 
 const id_type_l default_id = -1;
 
