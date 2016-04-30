@@ -21,8 +21,8 @@ public:
 	void getMember(std::list<id_type> &ret) const { for (id_type uID : members) { ret.push_back(uID); }; };
 
 	void editName(const std::wstring &newName) { name = newName; submit(); };
-	void addMember(id_type uID) { members.insert(uID); submit(); };
-	void delMember(id_type uID) { members.erase(uID); submit(); };
+	void addMember(id_type uID, bool syn = true) { members.insert(uID); if (syn) submit(); };
+	void delMember(id_type uID, bool syn = true) { members.erase(uID); if (syn) submit(); };
 
 	friend void load_group(id_type id, data_view& data);
 private:
@@ -79,10 +79,10 @@ public:
 	void editName(std::wstring &&newName) { name = std::move(newName); };
 	void editInfo(const uExtInfo &newInfo) { extInfo = newInfo; };
 	void editInfo(uExtInfo &&newInfo) { extInfo = std::move(newInfo); };
-	void addGroup(id_type_l gID) { groups.insert(gID); if (gID >= 0) submit(); };
-	void delGroup(id_type_l gID) { groups.erase(gID); if (gID >= 0) submit(); };
-	void addWork(id_type_l wID) { works.insert(wID); if (wID >= 0) submit(); };
-	void delWork(id_type_l wID) { works.erase(wID); if (wID >= 0) submit();
+	void addGroup(id_type_l gID, bool syn = true) { groups.insert(gID); if (gID >= 0 && syn) submit(); };
+	void delGroup(id_type_l gID, bool syn = true) { groups.erase(gID); if (gID >= 0 && syn) submit(); };
+	void addWork(id_type_l wID, bool syn = true) { works.insert(wID); if (wID >= 0 && syn) submit(); };
+	void delWork(id_type_l wID, bool syn = true) { works.erase(wID); if (wID >= 0 && syn) submit();
 	};
 
 	void submit();
@@ -114,8 +114,8 @@ public:
 	void editName(std::wstring &&newName) { name = std::move(newName); };
 	void editInfo(const std::wstring &newInfo) { info = newInfo; };
 	void editInfo(std::wstring &&newInfo) { info = std::move(newInfo); };
-	void addMember(id_type uID) { members.insert(uID); submit(); };
-	void delMember(id_type uID) { members.erase(uID); submit(); };
+	void addMember(id_type uID, bool syn = true) { members.insert(uID); if (syn) submit(); };
+	void delMember(id_type uID, bool syn = true) { members.erase(uID); if (syn) submit(); };
 
 	void submit();
 

@@ -107,9 +107,10 @@ void read_str(data_view& data, std::wstring& ret)
 	data_size_type str_size;
 	size_t wstr_size = 0;
 	if (!data.read(str_size)) throw(0);
+	if (!data.check(str_size)) throw(0);
 	const wxWCharBuffer &wstr = wxConvUTF8.cMB2WC(data.data, str_size, &wstr_size);
 	ret.assign(wstr, wstr_size);
-	if (!data.skip(str_size)) throw(0);
+	data.skip(str_size);
 }
 
 void read_list(data_view& data, std::set<id_type_l>& ret)
@@ -265,14 +266,17 @@ void group::submit()
 		return;
 	std::string data;
 	std::string name_utf8(wxConvUTF8.cWC2MB(name.c_str()));
-	uint32_t name_len = boost::endian::native_to_little(static_cast<uint32_t>(name_utf8.size()));
-	data.append(reinterpret_cast<char*>(&name_len), sizeof(uint32_t));
+	data_size_type name_len = boost::endian::native_to_little(static_cast<data_size_type>(name_utf8.size()));
+	data.append(reinterpret_cast<char*>(&name_len), sizeof(data_size_type));
 	data.append(name_utf8);
 
 	uint16_t user_count = boost::endian::native_to_little(static_cast<uint16_t>(members.size()));
 	data.append(reinterpret_cast<char*>(&user_count), sizeof(uint16_t));
 	for (id_type ID : members)
+	{
+		ID = boost::endian::native_to_little(ID);
 		data.append(reinterpret_cast<char*>(&ID), sizeof(id_type));
+	}
 
 	client.modify(lwm_client::CAT_GROUP, static_cast<id_type>(gID), data);
 }
@@ -281,42 +285,52 @@ void member::submit()
 {
 	std::string data;
 	std::string str_utf8(wxConvUTF8.cWC2MB(name.c_str()));
-	uint32_t str_len = boost::endian::native_to_little(static_cast<uint32_t>(str_utf8.size()));
-	data.append(reinterpret_cast<char*>(&str_len), sizeof(uint32_t));
+	data_size_type str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
+	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
 	data.append(str_utf8);
 
 	str_utf8 = wxConvUTF8.cWC2MB(extInfo.src.c_str());
-	str_len = boost::endian::native_to_little(static_cast<uint32_t>(str_utf8.size()));
-	data.append(reinterpret_cast<char*>(&str_len), sizeof(uint32_t));
+	str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
+	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
 	data.append(str_utf8);
 
 	str_utf8 = wxConvUTF8.cWC2MB(extInfo.info.c_str());
 	toSingleLine(str_utf8);
-	str_len = boost::endian::native_to_little(static_cast<uint32_t>(str_utf8.size()));
-	data.append(reinterpret_cast<char*>(&str_len), sizeof(uint32_t));
+	str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
+	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
 	data.append(str_utf8);
 
-	uint16_t group_count = boost::endian::native_to_little(static_cast<uint16_t>(groups.size()));
-	data.append(reinterpret_cast<char*>(&group_count), sizeof(uint16_t));
+	std::string parent_list;
+	uint16_t group_count = 0;
 	for (id_type_l ID : groups)
 	{
 		if (ID >= 0)
 		{
 			id_type ID_send = static_cast<id_type>(ID);
-			data.append(reinterpret_cast<char*>(&ID_send), sizeof(id_type));
+			ID_send = boost::endian::native_to_little(ID_send);
+			parent_list.append(reinterpret_cast<char*>(&ID_send), sizeof(id_type));
+			group_count++;
 		}
 	}
+	group_count = boost::endian::native_to_little(group_count);
+	data.append(reinterpret_cast<char*>(&group_count), sizeof(uint16_t));
+	data.append(parent_list);
 
-	uint16_t work_count = boost::endian::native_to_little(static_cast<uint16_t>(works.size()));
-	data.append(reinterpret_cast<char*>(&work_count), sizeof(uint16_t));
+	parent_list.clear();
+	uint16_t work_count = 0;
 	for (id_type_l ID : works)
 	{
 		if (ID >= 0)
 		{
 			id_type ID_send = static_cast<id_type>(ID);
-			data.append(reinterpret_cast<char*>(&ID_send), sizeof(id_type));
+			ID_send = boost::endian::native_to_little(ID_send);
+			parent_list.append(reinterpret_cast<char*>(&ID_send), sizeof(id_type));
+			work_count++;
 		}
 	}
+	work_count = boost::endian::native_to_little(work_count);
+	data.append(reinterpret_cast<char*>(&work_count), sizeof(uint16_t));
+	data.append(parent_list);
 
 	client.modify(lwm_client::CAT_MEMBER, uID, data);
 }
@@ -327,19 +341,22 @@ void work::submit()
 		return;
 	std::string data;
 	std::string str_utf8(wxConvUTF8.cWC2MB(name.c_str()));
-	uint32_t str_len = boost::endian::native_to_little(static_cast<uint32_t>(str_utf8.size()));
-	data.append(reinterpret_cast<char*>(&str_len), sizeof(uint32_t));
+	data_size_type str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
+	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
 	data.append(str_utf8);
 
 	str_utf8 = wxConvUTF8.cWC2MB(info.c_str());
-	str_len = boost::endian::native_to_little(static_cast<uint32_t>(str_utf8.size()));
-	data.append(reinterpret_cast<char*>(&str_len), sizeof(uint32_t));
+	str_len = boost::endian::native_to_little(static_cast<data_size_type>(str_utf8.size()));
+	data.append(reinterpret_cast<char*>(&str_len), sizeof(data_size_type));
 	data.append(str_utf8);
 
 	uint16_t user_count = boost::endian::native_to_little(static_cast<uint16_t>(members.size()));
 	data.append(reinterpret_cast<char*>(&user_count), sizeof(uint16_t));
 	for (id_type ID : members)
+	{
+		ID = boost::endian::native_to_little(ID);
 		data.append(reinterpret_cast<char*>(&ID), sizeof(id_type));
+	}
 
 	client.modify(lwm_client::CAT_WORK, static_cast<id_type>(wID), data);
 }

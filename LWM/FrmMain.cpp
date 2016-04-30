@@ -304,7 +304,7 @@ void FrmMain::buttonGroupDel_Click(wxCommandEvent& event)
 			std::list<id_type> depMemList;
 			grp.getMember(depMemList);
 			for (size_t uID : depMemList)
-				memList.at(uID).delGroup(gID);
+				memList.at(uID).delGroup(gID, false);
 
 			grpList.erase(gID);
 			std::vector<id_type_l>::iterator itr = GIDMap.begin();
@@ -366,7 +366,7 @@ void FrmMain::buttonWorkDel_Click(wxCommandEvent& event)
 			std::list<id_type> depMemList;
 			wrk.getMember(depMemList);
 			for (size_t uID : depMemList)
-				memList.at(uID).delWork(wID);
+				memList.at(uID).delWork(wID, false);
 
 			workList.erase(wID);
 			std::vector<id_type_l>::iterator itr = WIDMap.begin();
@@ -447,16 +447,24 @@ void FrmMain::buttonMemberDel_Click(wxCommandEvent& event)
 			std::list<id_type_l> depList;
 			mem.getGroup(depList);
 			for (size_t gID : depList)
-				grpList.at(gID).delMember(uID);
+				grpList.at(gID).delMember(uID, false);
 			mem.getWork(depList);
 			for (size_t wID : depList)
-				workList.at(wID).delMember(uID);
+				workList.at(wID).delMember(uID, false);
 
 			memList.erase(uID);
 			std::vector<id_type>::iterator itr = UIDMap.begin();
 			itr += uIndex;
 			UIDMap.erase(itr);
 			listMember->Delete(uIndex);
+
+			textName->Clear();
+			textSource->Clear();
+			textInfo->Clear();
+			for (unsigned int i = 0; i < GIDMap.size(); i++)
+				listMemberGroup->Check(i, false);
+			for (unsigned int i = 0; i < WIDMap.size(); i++)
+				listMemberWork->Check(i, false);
 
 			RefreshMemberList();
 		}
@@ -470,10 +478,70 @@ void FrmMain::buttonMemberApply_Click(wxCommandEvent& event)
 
 void FrmMain::listMemberGroup_ItemCheck(wxCommandEvent& event)
 {
-
+	int gIndex = event.GetInt(), uIndex = listMember->GetSelection();
+	if (gIndex < 1 || uIndex < 0)
+	{
+		listMemberGroup->Check(gIndex, false);
+		return;
+	}
+	id_type_l gID = GIDMap[gIndex];
+	id_type uID = UIDMap[uIndex];
+	member &mem = memList.at(uID);
+	if (listMemberGroup->IsChecked(gIndex))
+	{
+		mem.addGroup(gID);
+		if (mem.isInGroup(default_id))
+		{
+			mem.delGroup(default_id);
+			listMemberGroup->Check(0, false);
+		}
+		grpList.at(gID).addMember(uID);
+	}
+	else
+	{
+		member &mem = memList.at(uID);
+		mem.delGroup(gID);
+		grpList.at(gID).delMember(uID);
+		if (mem.getGroupCount() == 0)
+		{
+			mem.addGroup(default_id);
+			grpList.at(default_id).addMember(uID);
+			listMemberGroup->Check(0, true);
+		}
+	}
 }
 
 void FrmMain::listMemberWork_ItemCheck(wxCommandEvent& event)
 {
-
+	int wIndex = event.GetInt(), uIndex = listMember->GetSelection();
+	if (wIndex < 1 || uIndex < 0)
+	{
+		listMemberWork->Check(wIndex, false);
+		return;
+	}
+	id_type_l wID = WIDMap[wIndex];
+	id_type uID = UIDMap[uIndex];
+	member &mem = memList.at(uID);
+	if (listMemberWork->IsChecked(wIndex))
+	{
+		mem.addWork(wID);
+		if (mem.isInWork(default_id))
+		{
+			mem.delWork(default_id);
+			listMemberWork->Check(0, false);
+		}
+		workList.at(wID).addMember(uID);
+	}
+	else
+	{
+		member &mem = memList.at(uID);
+		mem.delWork(wID);
+		workList.at(wID).delMember(uID);
+		if (mem.getWorkCount() == 0)
+		{
+			mem.addWork(default_id);
+			workList.at(default_id).addMember(uID);
+			listMemberWork->Check(0, true);
+		}
+	}
 }
