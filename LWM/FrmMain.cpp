@@ -306,7 +306,12 @@ void FrmMain::buttonGroupDel_Click(wxCommandEvent& event)
 			std::list<id_type> depMemList;
 			grp.getMember(depMemList);
 			for (size_t uID : depMemList)
-				memList.at(uID).delGroup(gID, false);
+			{
+				member &mem = memList.at(uID);
+				mem.delGroup(gID, false);
+				if (mem.getGroupCount() == 0)
+					mem.addGroup(default_id);
+			}
 
 			grpList.erase(gID);
 			std::vector<id_type_l>::iterator itr = GIDMap.begin();
@@ -370,7 +375,12 @@ void FrmMain::buttonWorkDel_Click(wxCommandEvent& event)
 			std::list<id_type> depMemList;
 			wrk.getMember(depMemList);
 			for (size_t uID : depMemList)
-				memList.at(uID).delWork(wID, false);
+			{
+				member &mem = memList.at(uID);
+				mem.delWork(wID, false);
+				if (mem.getWorkCount() == 0)
+					mem.addWork(default_id);
+			}
 
 			workList.erase(wID);
 			std::vector<id_type_l>::iterator itr = WIDMap.begin();
@@ -452,6 +462,7 @@ void FrmMain::buttonMemberDel_Click(wxCommandEvent& event)
 			mem.getGroup(depList);
 			for (size_t gID : depList)
 				grpList.at(gID).delMember(uID, false);
+			depList.clear();
 			mem.getWork(depList);
 			for (size_t wID : depList)
 				workList.at(wID).delMember(uID, false);
