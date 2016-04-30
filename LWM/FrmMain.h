@@ -8,7 +8,9 @@ class FrmMain : public wxFrame
 public:
 	FrmMain(const wxString &title);
 
-	friend class lwm_client;
+	void RefreshGroup(id_type id);
+	void RefreshWork(id_type id);
+	void RefreshMember(id_type id);
 private:
 	enum itemID {
 		ID_FRAME, ID_ANY,
@@ -29,18 +31,38 @@ private:
 
 	wxCheckListBox *listGroup;
 	wxButton *buttonGroupAdd, *buttonGroupRename, *buttonGroupDel;
+	void listGroup_ItemCheck(wxCommandEvent& event);
+	void buttonGroupAdd_Click(wxCommandEvent& event);
+	void buttonGroupRename_Click(wxCommandEvent& event);
+	void buttonGroupDel_Click(wxCommandEvent& event);
 
 	wxCheckListBox *listWork;
 	wxButton *buttonWorkAdd, *buttonWorkEdit, *buttonWorkInfo, *buttonWorkDel;
+	void listWork_ItemCheck(wxCommandEvent& event);
+	void buttonWorkAdd_Click(wxCommandEvent& event);
+	void buttonWorkEdit_Click(wxCommandEvent& event);
+	void buttonWorkInfo_Click(wxCommandEvent& event);
+	void buttonWorkDel_Click(wxCommandEvent& event);
 
 	wxChoice *choiceStatusFilter;
 	wxListBox *listMember;
 	wxButton *buttonMemberAdd, *buttonMemberDel;
+	void listMember_SelectedIndexChanged(wxCommandEvent& event);
+	void buttonMemberAdd_Click(wxCommandEvent& event);
+	void buttonMemberDel_Click(wxCommandEvent& event);
 
 	wxTextCtrl *textName, *textSource, *textInfo;
 	wxChoice *choiceStatus;
 	wxButton *buttonMemberApply;
 	wxCheckListBox *listMemberGroup, *listMemberWork;
+	void buttonMemberApply_Click(wxCommandEvent& event);
+	void listMemberGroup_ItemCheck(wxCommandEvent& event);
+	void listMemberWork_ItemCheck(wxCommandEvent& event);
+
+	void RefreshMemberList();
+
+	std::vector<id_type_l> GIDMap, WIDMap;
+	std::vector<id_type> UIDMap;
 
 	wxDECLARE_EVENT_TABLE();
 };

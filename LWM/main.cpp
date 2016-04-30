@@ -15,6 +15,18 @@ asio::io_service main_io_service, misc_io_service;
 std::unique_ptr<msgr_proto::server> srv;
 lwm_client client;
 
+std::function<void(lwm_client::response, std::shared_ptr<lwm_client::lwm_callback>)> FirstCallback;
+void set_callback(lwm_client::lwm_callback &&callback)
+{
+	std::shared_ptr<lwm_client::lwm_callback> _callback = std::make_shared<lwm_client::lwm_callback>(callback);
+	client.set_callback([_callback](lwm_client::response res) {
+		FirstCallback(res, _callback);
+		client.set_callback([](lwm_client::response res) {
+			FirstCallback(res, std::make_shared<lwm_client::lwm_callback>());
+		});
+	});
+}
+
 bool LWM::ConnectTo(const std::string &addr, port_type port)
 {
 	std::shared_ptr<std::promise<int>> connect_promise = std::make_shared<std::promise<int>>();
@@ -43,7 +55,8 @@ bool LWM::ConnectTo(const std::string &addr, port_type port)
 bool LWM::Login()
 {
 	FrmLogin login(wxT("登录"));
-	login.ShowModal();
+	if (login.ShowModal() != wxID_OK)
+		return false;
 
 	std::string name(wxConvUTF8.cWC2MB(login.GetName().c_str()));
 	std::string pass(wxConvUTF8.cWC2MB(login.GetPass().c_str()));
@@ -57,12 +70,20 @@ bool LWM::Login()
 	return login_future.get() == lwm_client::ERR_SUCCESS;
 }
 
-void LWM::OnResponse(lwm_client::response res)
+void LWM::OnResponse(lwm_client::response res, std::shared_ptr<lwm_client::lwm_callback> callback)
 {
-	switch (res.req.op)
+	if (callback)
 	{
-		case lwm_client::OP_INFO:
-			break;
+		try
+		{
+			(*callback)(res);
+		}
+		catch (...) {}
+	}
+	if (res.err == lwm_client::ERR_DISCONNECTED)
+	{
+		wxMessageBox(wxT("与服务器的连接已断开"), "Error", wxOK | wxICON_ERROR);
+		form->Close();
 	}
 }
 
@@ -111,19 +132,50 @@ bool LWM::OnInit()
 			wxMessageBox(wxT("无法连接至服务器"), "Error", wxOK | wxICON_ERROR);
 			throw(1);
 		}
-		init.SetStage(1);
+		init.NextStage();
 
 		if (!Login())
 		{
 			wxMessageBox(wxT("登录失败"), "Error", wxOK | wxICON_ERROR);
 			throw(1);
 		}
-		init.SetStage(2);
+		FirstCallback = [this](lwm_client::response res, std::shared_ptr<lwm_client::lwm_callback> callback) { OnResponse(res, callback); };
+		init.NextStage();
 
-		if (list_group() != lwm_client::ERR_SUCCESS)
+		if (list(lwm_client::CAT_GROUP) != lwm_client::ERR_SUCCESS)
 		{
 			wxMessageBox(wxT("无法加载组信息"), "Error", wxOK | wxICON_ERROR);
 			throw(1);
+		}
+		init.NextStage();
+		if (list(lwm_client::CAT_WORK) != lwm_client::ERR_SUCCESS)
+		{
+			wxMessageBox(wxT("无法加载工作信息"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+		init.NextStage();
+		if (list(lwm_client::CAT_MEMBER) != lwm_client::ERR_SUCCESS)
+		{
+			wxMessageBox(wxT("无法加载成员信息"), "Error", wxOK | wxICON_ERROR);
+			throw(1);
+		}
+		init.NextStage();
+
+		group &default_grp = grpList.emplace(default_id, group(default_id, wxT("[无组]"))).first->second;
+		work &default_wrk = workList.emplace(default_id, work(default_id, wxT("[无工作]"), wxT(""))).first->second;
+		for (memListTp::iterator itr = memList.begin(), itrEnd = memList.end(); itr != itrEnd; itr++)
+		{
+			member &mem = itr->second;
+			if (mem.getGroupCount() == 0)
+			{
+				default_grp.addMember(mem.getUID());
+				mem.addGroup(default_id);
+			}
+			if (mem.getWorkCount() == 0)
+			{
+				default_wrk.addMember(mem.getUID());
+				mem.addWork(default_id);
+			}
 		}
 
 		form = new FrmMain(wxT("LWM"));

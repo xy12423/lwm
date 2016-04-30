@@ -15,7 +15,7 @@ private:
 	bool ConnectTo(const std::string &addr, port_type port);
 	bool Login();
 
-	void OnResponse(lwm_client::response res);
+	void OnResponse(lwm_client::response res, std::shared_ptr<lwm_client::lwm_callback> callback);
 
 	FrmMain *form;
 };
