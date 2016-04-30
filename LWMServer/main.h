@@ -49,16 +49,12 @@ public:
 		OP_DEL,
 		OP_INFO,
 		OP_MODIFY,
-
-		OP_LOGIN
 	};
 
 	enum category_t {
 		CAT_GROUP,
 		CAT_WORK,
 		CAT_MEMBER,
-
-		CAT_NOCAT
 	};
 
 	typedef uint16_t id_type;
