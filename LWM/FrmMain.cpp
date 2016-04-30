@@ -278,6 +278,8 @@ void FrmMain::buttonGroupAdd_Click(wxCommandEvent& event)
 		{
 			grpList.emplace(new_id, group(new_id, name.ToStdWstring()));
 			listGroup->Append(name);
+			listMemberGroup->Append(name);
+			listGroup->Check(GIDMap.size(), true);
 			GIDMap.push_back(new_id);
 		}
 	}
@@ -335,6 +337,8 @@ void FrmMain::buttonWorkAdd_Click(wxCommandEvent& event)
 		{
 			workList.emplace(new_id, work(new_id, name.ToStdWstring(), empty_wstring));
 			listWork->Append(name);
+			listMemberWork->Append(name);
+			listWork->Check(WIDMap.size(), true);
 			WIDMap.push_back(new_id);
 		}
 	}
