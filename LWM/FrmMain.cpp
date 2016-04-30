@@ -1,6 +1,7 @@
 #include "stdafx.h"
 #include "structure.h"
 #include "FrmMain.h"
+#include "FrmWorkInfo.h"
 
 wxBEGIN_EVENT_TABLE(FrmMain, wxFrame)
 
@@ -287,7 +288,22 @@ void FrmMain::buttonGroupAdd_Click(wxCommandEvent& event)
 
 void FrmMain::buttonGroupRename_Click(wxCommandEvent& event)
 {
-
+	int gIndex = listGroup->GetSelection();
+	if (gIndex < 0)
+		return;
+	id_type_l gID = GIDMap[gIndex];
+	if (gID >= 0)
+	{
+		wxTextEntryDialog inputDlg(this, wxT("请输入组名"), wxT("输入组名"), listGroup->GetStringSelection());
+		inputDlg.ShowModal();
+		wxString name = inputDlg.GetValue();
+		if (name != wxEmptyString)
+		{
+			grpList.at(GIDMap[gIndex]).editName(name.ToStdWstring());
+			listGroup->SetString(gIndex, name);
+			listMemberGroup->SetString(gIndex, name);
+		}
+	}
 }
 
 void FrmMain::buttonGroupDel_Click(wxCommandEvent& event)
@@ -351,12 +367,39 @@ void FrmMain::buttonWorkAdd_Click(wxCommandEvent& event)
 
 void FrmMain::buttonWorkEdit_Click(wxCommandEvent& event)
 {
-
+	int wIndex = listWork->GetSelection();
+	if (wIndex < 0)
+		return;
+	id_type_l wID = WIDMap[wIndex];
+	if (wID >= 0)
+	{
+		work &wrk = workList.at(wID);
+		FrmWorkInfo wiDlg(wxT("编辑"), wrk.getName(), wrk.getInfo());
+		wiDlg.ShowModal();
+		wxString name = wiDlg.GetName(), info = wiDlg.GetInfo();
+		if (name != wxEmptyString)
+		{
+			listWork->SetString(wIndex, name);
+			listMemberWork->SetString(wIndex, name);
+			wrk.editName(name.ToStdWstring());
+			wrk.editInfo(info.ToStdWstring());
+			wrk.submit();
+		}
+	}
 }
 
 void FrmMain::buttonWorkInfo_Click(wxCommandEvent& event)
 {
-
+	int wIndex = listWork->GetSelection();
+	if (wIndex < 0)
+		return;
+	id_type_l wID = WIDMap[wIndex];
+	if (wID >= 0)
+	{
+		work &wrk = workList.at(wID);
+		FrmWorkInfo wiDlg(wxT("查看"), wrk.getName(), wrk.getInfo());
+		wiDlg.ShowModal();
+	}
 }
 
 void FrmMain::buttonWorkDel_Click(wxCommandEvent& event)
@@ -396,10 +439,10 @@ void FrmMain::buttonWorkDel_Click(wxCommandEvent& event)
 
 void FrmMain::listMember_SelectedIndexChanged(wxCommandEvent& event)
 {
-	int selection = listMember->GetSelection();
-	if (selection != -1)
+	int uIndex = listMember->GetSelection();
+	if (uIndex != -1)
 	{
-		const member &mem = memList.at(UIDMap[selection]);
+		const member &mem = memList.at(UIDMap[uIndex]);
 		const uExtInfo &ext = mem.getExtInfo();
 		textName->SetValue(mem.getName());
 		textSource->SetValue(ext.src);
