@@ -21,12 +21,69 @@
     <ClInclude Include="main.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="FrmLogin.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="crypto.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="session.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="iosrvThread.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FrmWorkInfo.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="lwm_client.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="structure.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FrmMain.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="FrmInit.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="main.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FrmLogin.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="crypto.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="session.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="session_server.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="iosrvThread.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FrmWorkInfo.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="lwm_client.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="structure.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FrmMain.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="FrmInit.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

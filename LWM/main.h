@@ -3,30 +3,21 @@
 #ifndef _H_MAIN
 #define _H_MAIN
 
-class mainFrame : public wxFrame
-{
-public:
-	mainFrame(const wxString& title);
-private:
-	enum itemID {
-		ID_FRAME,
-		ID_LISTUSER, ID_BUTTONADD, ID_BUTTONDEL,
-		ID_TEXTMSG, ID_TEXTINPUT, ID_BUTTONSEND, ID_BUTTONSENDIMAGE, ID_BUTTONSENDFILE, ID_BUTTONCANCELSEND,
-		ID_TEXTINFO
-	};
+#include "lwm_client.h"
+#include "FrmMain.h"
 
-	wxPanel *panel;
-
-	wxDECLARE_EVENT_TABLE();
-};
-
-class MyApp : public wxApp
+class LWM : public wxApp
 {
 public:
 	virtual bool OnInit();
 	virtual int OnExit();
 private:
-	mainFrame *form;
+	bool ConnectTo(const std::string &addr, port_type port);
+	bool Login();
+
+	void OnResponse(lwm_client::response res, std::shared_ptr<lwm_client::lwm_callback> callback);
+
+	FrmMain *form;
 };
 
 #endif
