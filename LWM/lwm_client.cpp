@@ -30,11 +30,11 @@ void lwm_client::on_leave(user_id_type id)
 void lwm_client::login(const std::string& name, const std::string& pass)
 {
 	std::string data;
-	data_length_type name_len = boost::endian::native_to_little(static_cast<data_length_type>(name.size())),
-		pass_len = boost::endian::native_to_little(static_cast<data_length_type>(pass.size()));
-	data.append(reinterpret_cast<const char*>(&name_len), sizeof(data_length_type));
+	data_size_type name_len = boost::endian::native_to_little(static_cast<data_size_type>(name.size())),
+		pass_len = boost::endian::native_to_little(static_cast<data_size_type>(pass.size()));
+	data.append(reinterpret_cast<const char*>(&name_len), sizeof(data_size_type));
 	data.append(name);
-	data.append(reinterpret_cast<const char*>(&pass_len), sizeof(data_length_type));
+	data.append(reinterpret_cast<const char*>(&pass_len), sizeof(data_size_type));
 	data.append(pass);
 
 	pending.push_back(request(OP_LOGIN, CAT_NOCAT, 0));
