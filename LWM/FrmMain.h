@@ -47,6 +47,7 @@ private:
 	wxChoice *choiceStatusFilter;
 	wxListBox *listMember;
 	wxButton *buttonMemberAdd, *buttonMemberDel;
+	void choiceStatusFilter_SelectedIndexChanged(wxCommandEvent& event);
 	void listMember_SelectedIndexChanged(wxCommandEvent& event);
 	void buttonMemberAdd_Click(wxCommandEvent& event);
 	void buttonMemberDel_Click(wxCommandEvent& event);
