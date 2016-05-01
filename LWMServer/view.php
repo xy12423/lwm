@@ -74,13 +74,13 @@
 					switch ($row['status'])
 					{
 						case 0:
-							echo "Availabie";
+							echo "Available";
 							break;
 						case 1:
 							echo "Busy";
 							break;
 						case 2:
-							echo "Unavailabie";
+							echo "Unavailable";
 							break;
 					}
 					echo "<br /><b>Info:</b><br />" . process_esc_char($row['info']);
