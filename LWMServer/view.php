@@ -1,17 +1,17 @@
 <?php
 	function myErrHandler($error_level, $error_message){}
 	
-    $addr = "\\";
-    
-    function process_esc_char($str)
-    {
-        $ret = stripcslashes($str);
-        $ret = str_replace(" ", "&nbsp;", $ret);
-        $ret = str_replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;", $ret);
-        $ret = str_replace("\n", "<br />", $ret);
-        return $ret;
-    }
-    
+	$addr = "\\";
+	
+	function process_esc_char($str)
+	{
+		$ret = stripcslashes($str);
+		$ret = str_replace(" ", "&nbsp;", $ret);
+		$ret = str_replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;", $ret);
+		$ret = str_replace("\n", "<br />", $ret);
+		return $ret;
+	}
+	
 	function query_list($field, $con)
 	{
 		$result = mysqli_query($con, "SELECT * FROM `" . $field . "`");
@@ -70,8 +70,22 @@
 			case "member":
 				while($row = mysqli_fetch_array($result))
 				{
-					echo "<p><b>Name:</b>&nbsp;" . $row['name'] . "<br /><b>Source:</b>&nbsp;" . $row['src'] . "<br /><b>Info:</b><br />" . process_esc_char($row['info']) . "</p>";
-					echo "<p><b>Groups:</b><br />";
+					echo "<p><b>Name:</b>&nbsp;" . $row['name'] . "<br /><b>Source:</b>&nbsp;" . $row['src'] . "<br /><b>Status:</b>&nbsp;";
+					switch ($row['status'])
+					{
+						case 0:
+							echo "Availabie";
+							break;
+						case 1:
+							echo "Busy";
+							break;
+						case 2:
+							echo "Unavailabie";
+							break;
+					}
+					echo "<br /><b>Info:</b><br />" . process_esc_char($row['info']);
+					
+					echo "</p><p><b>Groups:</b><br />";
 					split_list('group', $row['group'], $con);
 					echo "</p>";
 					echo "<p><b>Works:</b><br />";
