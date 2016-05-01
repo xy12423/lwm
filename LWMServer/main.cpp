@@ -300,14 +300,14 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 	{
 		user_ext &user = user_exts.at(id);
 
-		const size_t size_length = sizeof(data_length_type);
+		const size_t size_length = sizeof(data_size_type);
 		const char *dataItr = data.data(), *dataEnd = data.data() + data.size();
 
 		switch (user.current_stage)
 		{
 			case user_ext::LOGGING_IN:
 			{
-				data_length_type name_size, pass_size;
+				data_size_type name_size, pass_size;
 				
 				read_uint(name_size);
 				checkErr(name_size);
@@ -402,7 +402,7 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 										write_list(result, row[3]);	//work
 										write_str(result, row[4]);	//src
 										write_str(result, row[5]);	//info
-										char status = static_cast<char>(std::atoi(row[6]));
+										char status = static_cast<char>(row[6] == nullptr ? 0 : std::atoi(row[6]));
 										result.push_back(status);
 									}
 									break;

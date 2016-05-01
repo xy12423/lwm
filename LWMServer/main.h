@@ -32,7 +32,7 @@ typedef std::unordered_map<int, user_ext> user_ext_list;
 
 const std::string server_uname = "Server";
 const int server_uid = -1;
-class lwm_server :public server_interface
+class lwm_server :public msgr_inter
 {
 public:
 	enum predefined_err {
