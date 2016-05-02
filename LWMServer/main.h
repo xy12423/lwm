@@ -3,6 +3,55 @@
 #ifndef _H_MAIN
 #define _H_MAIN
 
+struct sql_conn_tp
+{
+	sql_conn_tp() :conn(nullptr) {}
+	sql_conn_tp(const std::string& addr, port_type port, const std::string& user, const std::string& pass, const std::string& db_name)
+	{
+		connect(addr, port, user, pass, db_name);
+	}
+	sql_conn_tp(const sql_conn_tp&) = delete;
+	sql_conn_tp(sql_conn_tp&& _res) :conn(_res.conn) { _res.conn = nullptr; }
+	~sql_conn_tp() { if (conn != nullptr) mysql_close(conn); }
+
+	inline void reset(){ if (conn != nullptr) { mysql_close(conn); conn = nullptr; } }
+	inline void connect(const std::string& addr, port_type port, const std::string& user, const std::string& pass, const std::string& db_name)
+	{
+		reset();
+		conn = mysql_init(nullptr);
+		if (conn == nullptr)
+			return;
+		conn = mysql_real_connect(conn, addr.c_str(), user.c_str(), pass.c_str(), db_name.c_str(), port, nullptr, 0);
+		if (conn == nullptr)
+			return;
+	}
+
+	inline operator bool() { return conn != nullptr; }
+	inline bool operator!() { return conn == nullptr; }
+	inline operator MYSQL*() { return conn; };
+
+	MYSQL *conn;
+};
+
+struct sql_result_tp
+{
+	sql_result_tp(MYSQL* _con) { res = mysql_store_result(_con); }
+	sql_result_tp(const sql_result_tp&) = delete;
+	sql_result_tp(sql_result_tp&& _res) :res(_res.res) { _res.res = nullptr; }
+	~sql_result_tp() { if (res != nullptr) mysql_free_result(res); }
+
+	inline operator bool() { return res != nullptr; }
+	inline bool operator!() { return res == nullptr; }
+	inline operator MYSQL_RES*() { return res; };
+
+	void reset(MYSQL* _con = nullptr) {
+		if (res != nullptr) { mysql_free_result(res); res = nullptr; }
+		if (_con != nullptr) { res = mysql_store_result(_con); }
+	}
+
+	MYSQL_RES* res;
+};
+
 struct user_record
 {
 	enum group_type { GUEST, USER, ADMIN, CONSOLE };
@@ -68,7 +117,6 @@ public:
 		initKey();
 	}
 	~lwm_server() {
-		mysql_close(sql_conn);
 		write_data();
 	}
 
@@ -86,7 +134,7 @@ public:
 	std::string process_command(std::string cmd, user_record& user);
 
 	void set_static_port(port_type port) { static_port = port; };
-	bool init_sql_conn();
+	bool sql_connect(sql_conn_tp& sql_conn);
 private:
 	void read_data();
 	void write_data();
@@ -101,8 +149,6 @@ private:
 
 	user_record_list user_records;
 	user_ext_list user_exts;
-
-	MYSQL *sql_conn;
 };
 
 typedef std::unordered_map<std::string, std::string> config_table_tp;

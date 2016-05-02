@@ -39,25 +39,6 @@ struct data_view
 	size_t size;
 };
 
-struct sql_result_tp
-{
-	sql_result_tp(MYSQL* _con) { res = mysql_store_result(_con); }
-	sql_result_tp(const sql_result_tp &) = delete;
-	sql_result_tp(sql_result_tp &&_res) :res(_res.res) { _res.res = nullptr; }
-	~sql_result_tp() { if (res != nullptr) mysql_free_result(res); }
-
-	inline operator bool() { return res != nullptr; }
-	inline bool operator!() { return res == nullptr; }
-	inline operator MYSQL_RES*() { return res; };
-
-	void reset(MYSQL* _con = nullptr) {
-		if (res != nullptr) { mysql_free_result(res); res = nullptr; }
-		if (_con != nullptr) { res = mysql_store_result(_con); }
-	}
-
-	MYSQL_RES* res;
-};
-
 std::promise<void> exit_promise;
 config_table_tp config_items;
 
@@ -344,6 +325,9 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 			{
 				try
 				{
+					sql_conn_tp sql_conn;
+					sql_connect(sql_conn);
+
 					checkErr(1);
 					char operation = *dataItr;
 					dataItr++;
@@ -768,7 +752,7 @@ bool lwm_server::new_rand_port(port_type &ret)
 	return true;
 }
 
-bool lwm_server::init_sql_conn()
+bool lwm_server::sql_connect(sql_conn_tp& sql_conn)
 {
 	try
 	{
@@ -779,14 +763,10 @@ bool lwm_server::init_sql_conn()
 		std::string &pass = config_items.at("sql_pass");
 		std::string &db_name = config_items.at("sql_db");
 
-		MYSQL *conn = mysql_init(nullptr);
-		if (!conn)
-			throw(std::runtime_error("Failed to init connect to SQL"));
-		conn = mysql_real_connect(conn, addr.c_str(), user.c_str(), pass.c_str(), db_name.c_str(), sql_port, nullptr, 0);
-		if (!conn)
+		sql_conn.connect(addr, sql_port, user, pass, db_name);
+		if (!sql_conn)
 			throw(std::runtime_error("Failed to connect to SQL"));
 
-		sql_conn = conn;
 		std::cout << "Connected to SQL server at " << addr << ':' << sql_port << std::endl;
 	}
 	catch (std::out_of_range &) { return false; }
@@ -849,11 +829,13 @@ int main(int argc, char *argv[])
 			std::cout << "Using IPv6 for listening" << std::endl;
 		}
 		catch (std::out_of_range &) {}
-		if (!inter.init_sql_conn())
+		sql_conn_tp test_conn;
+		if (!inter.sql_connect(test_conn))
 		{
 			std::cerr << "SQL connection arg not set or invalid" << std::endl;
 			throw(0);
 		}
+		test_conn.reset();
 
 		std::srand(static_cast<unsigned int>(std::time(NULL)));
 		for (; portsBegin <= portsEnd; portsBegin++)
