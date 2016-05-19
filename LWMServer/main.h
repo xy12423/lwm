@@ -8,7 +8,12 @@ struct sql_conn_tp
 	sql_conn_tp() :conn(nullptr) {}
 	sql_conn_tp(const std::string& addr, port_type port, const std::string& user, const std::string& pass, const std::string& db_name)
 	{
-		connect(addr, port, user, pass, db_name);
+		conn = mysql_init(nullptr);
+		if (conn == nullptr)
+			return;
+		conn = mysql_real_connect(conn, addr.c_str(), user.c_str(), pass.c_str(), db_name.c_str(), port, nullptr, 0);
+		if (conn == nullptr)
+			return;
 	}
 	sql_conn_tp(const sql_conn_tp&) = delete;
 	sql_conn_tp(sql_conn_tp&& _res) :conn(_res.conn) { _res.conn = nullptr; }

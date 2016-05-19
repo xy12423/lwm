@@ -70,10 +70,21 @@ void encrypt(const std::string& src, std::string& dst, const ECIES<ECP>::Encrypt
 	StringSource ss1(src, true, new PK_EncryptorFilter(prng, e1, new StringSink(dst)));
 }
 
+void encrypt(const byte* src, size_t src_size, std::string& dst, const CryptoPP::ECIES<CryptoPP::ECP>::Encryptor& e1)
+{
+	dst.clear();
+	StringSource ss1(src, src_size, true, new PK_EncryptorFilter(prng, e1, new StringSink(dst)));
+}
+
 void decrypt(const std::string& src, std::string& dst)
 {
 	dst.clear();
 	StringSource ss1(src, true, new PK_DecryptorFilter(prng, d0, new StringSink(dst)));
+}
+
+void decrypt(const byte* src, size_t src_size, CryptoPP::SecByteBlock& dst)
+{
+	d0.Decrypt(prng, src, src_size, dst);
 }
 
 void init_sym_encryption(CBC_Mode<AES>::Encryption& e, const SecByteBlock& key, SecByteBlock& iv)
