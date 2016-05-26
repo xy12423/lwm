@@ -703,6 +703,7 @@ void session::read_header()
 {
 	try
 	{
+		std::cout << "read_header()" << std::endl;
 		session_ptr self = shared_from_this();
 		asio::async_read(*socket,
 			asio::buffer(read_buffer.get(), sizeof(data_size_type)),
@@ -742,6 +743,7 @@ void session::read_data(size_t size_last, const std::shared_ptr<std::string>& bu
 {
 	try
 	{
+		std::cout << "read_data(" << size_last << ')' << std::endl;
 		session_ptr self = shared_from_this();
 		if (size_last > read_buffer_size)
 		{
@@ -805,6 +807,7 @@ void session::read_data(size_t size_last, const std::shared_ptr<std::string>& bu
 
 void session::process_data(const std::shared_ptr<std::string>& buf)
 {
+	std::cout << "process_data()" << std::endl;
 	session_ptr self = shared_from_this();
 
 	misc_iosrv.post([this, self, buf]() {
@@ -852,6 +855,7 @@ void session::process_data(const std::shared_ptr<std::string>& buf)
 
 void session::write()
 {
+	std::cout << "write()" << std::endl;
 	session_ptr self = shared_from_this();
 
 	write_que_tp::iterator write_itr = write_que.begin(), write_que_end = write_que.end();

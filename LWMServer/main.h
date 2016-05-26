@@ -27,8 +27,6 @@ struct sql_conn_tp
 		if (conn == nullptr)
 			return;
 		conn = mysql_real_connect(conn, addr.c_str(), user.c_str(), pass.c_str(), db_name.c_str(), port, nullptr, 0);
-		if (conn == nullptr)
-			return;
 	}
 
 	inline operator bool() { return conn != nullptr; }

@@ -275,6 +275,12 @@ void read_list(std::string& result, data_view& src)
 	}
 }
 
+int mysql_query(sql_conn_tp& sql_conn, const char* q)
+{
+	std::cout << "SQL QUERY:" << q << std::endl;
+	return mysql_query(sql_conn.conn, q);
+}
+
 void lwm_server::on_data(user_id_type id, const std::string &data)
 {
 	try
@@ -312,6 +318,7 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 						record.logged_in = true;
 						record.id = id;
 
+						std::cout << "ID:" << id << " logged in as " << user.name << std::endl;
 						send_data(id, { ERR_SUCCESS }, msgr_proto::session::priority_sys);
 					}
 				}
@@ -623,6 +630,7 @@ void lwm_server::on_data(user_id_type id, const std::string &data)
 void lwm_server::on_join(user_id_type id, const std::string &)
 {
 	user_ext &ext = user_exts.emplace(id, user_ext()).first->second;
+	std::cout << "New user connected:" << id << std::endl;
 }
 
 void lwm_server::on_leave(user_id_type id)
@@ -630,6 +638,7 @@ void lwm_server::on_leave(user_id_type id)
 	user_ext_list::iterator itr = user_exts.find(id);
 	user_ext &user = itr->second;
 
+	std::cout << "Del user connected:" << id << std::endl;
 	user_exts.erase(itr);
 }
 
@@ -850,6 +859,7 @@ int main(int argc, char *argv[])
 				{
 					iosrv->run();
 				}
+				catch (std::exception &ex) { std::cerr << ex.what() << std::endl; abnormally_exit = true; }
 				catch (...) { abnormally_exit = true; }
 			} while (abnormally_exit);
 		};
